@@ -1,0 +1,93 @@
+package com.lz.module.infra.service.i18n;
+
+import com.lz.framework.common.pojo.PageResult;
+import com.lz.module.infra.controller.admin.i18n.vo.i18nLocale.I18nLocalePageReqVO;
+import com.lz.module.infra.controller.admin.i18n.vo.i18nLocale.I18nLocaleSaveReqVO;
+import com.lz.module.infra.dal.dataobject.i18n.I18nLocaleDO;
+import jakarta.validation.Valid;
+
+import java.util.List;
+
+/**
+ * 国际化国家 Service 接口
+ *
+ * @author 荔枝软件
+ */
+public interface I18nLocaleService {
+
+    /**
+     * 创建国际化国家
+     *
+     * @param createReqVO 创建信息
+     * @return 编号
+     */
+    Long createI18nLocale(@Valid I18nLocaleSaveReqVO createReqVO);
+
+    /**
+     * 更新国际化国家
+     *
+     * @param updateReqVO 更新信息
+     */
+    void updateI18nLocale(@Valid I18nLocaleSaveReqVO updateReqVO);
+
+    /**
+     * 删除国际化国家
+     *
+     * @param id 编号
+     */
+    void deleteI18nLocale(Long id);
+
+    /**
+     * 批量删除国际化国家
+     *
+     * @param ids 编号
+     */
+    void deleteI18nLocaleListByIds(List<Long> ids);
+
+    /**
+     * 获得国际化国家
+     *
+     * @param id 编号
+     * @return 国际化国家
+     */
+    I18nLocaleDO getI18nLocale(Long id);
+
+    /**
+     * 获得国际化国家分页
+     *
+     * @param pageReqVO 分页查询
+     * @return 国际化国家分页
+     */
+    PageResult<I18nLocaleDO> getI18nLocalePage(I18nLocalePageReqVO pageReqVO);
+
+    /**
+     * 获得国际化国家列表
+     *
+     * @param localeTarget 国际化目标
+     * @return 国际化国家列表
+     */
+    List<I18nLocaleDO> getI18nLocaleByLocaleTarget(Integer localeTarget);
+
+    /**
+     * 清理国际化缓存，同时传递更改国际化是否修改
+     */
+    void clearI18nCache(Integer localeTarget, String locale);
+
+
+    /**
+     * 获得国际化国家当前缓存的key，用于判断是否有更新
+     *
+     * @param localeTarget 使用端
+     * @param locale       语言
+     * @return 是否更新
+     */
+    String getI18nUpdateKey(Integer localeTarget, String locale);
+
+    /**
+     * 获得国际化国家默认语言
+     *
+     * @param localeTarget 国际化目标
+     * @return 默认语言
+     */
+    String getI18nLocaleDefaultLangByLocalTarget(Integer localeTarget);
+}

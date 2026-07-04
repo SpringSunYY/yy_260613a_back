@@ -1,0 +1,95 @@
+package com.lz.module.system.controller.admin.logger.vo.loginlog;
+
+import com.lz.framework.excel.core.annotations.ExcelColumnSelect;
+import com.lz.framework.excel.core.annotations.ExcelI18n;
+import com.lz.framework.excel.core.convert.DictConvert;
+import com.lz.module.system.enums.DictTypeConstants;
+import com.alibaba.excel.annotation.ExcelIgnoreUnannotated;
+import com.alibaba.excel.annotation.ExcelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.Data;
+
+import java.time.LocalDateTime;
+
+@Schema(description = "管理后台 - 登录日志 Response VO")
+@Data
+@ExcelIgnoreUnannotated
+public class LoginLogRespVO {
+
+    @Schema(description = "日志编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "1024")
+    @ExcelProperty("日志主键")
+    @ExcelI18n(i18nKey = "system.loginLog.field.id")
+    private Long id;
+
+    @Schema(description = "日志类型，参见 LoginLogTypeEnum 枚举类", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
+    @ExcelProperty(value = "日志类型", converter = DictConvert.class)
+    @ExcelColumnSelect(dictType = DictTypeConstants.LOGIN_TYPE, i18n = true)
+    @ExcelI18n(i18nKey = "system.loginLog.field.logType")
+    private Integer logType;
+
+    @Schema(description = "用户编号", example = "666")
+    private Long userId;
+
+    @Schema(description = "用户类型，参见 UserTypeEnum 枚举", requiredMode = Schema.RequiredMode.REQUIRED, example = "2")
+    private Integer userType;
+
+    @Schema(description = "链路追踪编号", example = "89aca178-a370-411c-ae02-3f0d672be4ab")
+    private String traceId;
+
+    @Schema(description = "用户账号", requiredMode = Schema.RequiredMode.REQUIRED, example = "litchi")
+    @ExcelProperty("用户账号")
+    @ExcelI18n(i18nKey = "system.loginLog.field.username")
+    private String username;
+
+    @Schema(description = "登录结果，参见 LoginResultEnum 枚举类", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
+    @ExcelProperty(value = "登录结果", converter = DictConvert.class)
+    @ExcelColumnSelect(dictType = DictTypeConstants.LOGIN_RESULT, i18n = true)
+    @ExcelI18n(i18nKey = "system.loginLog.field.result")
+    private Integer result;
+    /**
+     * 用户 IP
+     */
+    @Schema(description = "用户 IP", requiredMode = Schema.RequiredMode.REQUIRED)
+    @ExcelProperty("用户 IP")
+    @ExcelI18n(i18nKey = "system.loginLog.field.userIp")
+    private String userIp;
+
+    /**
+     * IP属地
+     */
+    @Schema(description = "IP属地", requiredMode = Schema.RequiredMode.REQUIRED)
+    @ExcelProperty("IP属地")
+    @ExcelI18n(i18nKey = "system.loginLog.field.userIpAddr")
+    private String userIpAddr;
+
+    /**
+     * 浏览器 UA
+     */
+    @Schema(description = "浏览器 UA", requiredMode = Schema.RequiredMode.REQUIRED)
+    @ExcelProperty("浏览器 UA")
+    @ExcelI18n(i18nKey = "system.loginLog.field.userAgent")
+    private String userAgent;
+
+    /**
+     * 浏览器
+     */
+    @Schema(description = "浏览器", requiredMode = Schema.RequiredMode.REQUIRED)
+    @ExcelProperty("浏览器")
+    @ExcelI18n(i18nKey = "system.loginLog.field.userBrowser")
+    private String userBrowser;
+
+    /**
+     * 操作系统
+     */
+    @Schema(description = "操作系统", requiredMode = Schema.RequiredMode.REQUIRED)
+    @ExcelProperty("操作系统")
+    @ExcelI18n(i18nKey = "system.loginLog.field.userOs")
+    private String userPlatform;
+
+
+    @Schema(description = "登录时间", requiredMode = Schema.RequiredMode.REQUIRED)
+    @ExcelProperty("登录时间")
+    @ExcelI18n(i18nKey = "system.loginLog.field.createTime")
+    private LocalDateTime createTime;
+
+}

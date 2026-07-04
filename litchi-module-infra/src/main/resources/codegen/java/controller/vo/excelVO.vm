@@ -1,0 +1,95 @@
+package ${basePackage}.module.${table.moduleName}.controller.${sceneEnum.basePackage}.${table.businessName}.vo;
+#set ($i18nModuleType = $extendConfig.get('i18nModuleType'))
+import com.alibaba.excel.annotation.ExcelProperty;
+import com.lz.framework.common.validation.i18n.I18nNotEmpty;
+import com.lz.framework.common.validation.i18n.I18nNotNull;
+import ${ExcelColumnSelectClassName};
+import ${ExcelI18nClassName};
+import ${DictConvertClassName};
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
+import org.springframework.format.annotation.DateTimeFormat;
+## 处理 BigDecimal 字段的引入
+#foreach ($column in $columns)
+#if (${column.javaType} == "BigDecimal")
+import java.math.BigDecimal;
+#break
+#end
+#end
+## 处理 LocalDate/LocalDateTime 字段的引入
+#foreach ($column in $columns)
+#if ((${column.createOperation} || ${column.updateOperation}) && (${column.javaType} == "LocalDateTime" || ${column.javaType} == "LocalDate"))
+import java.time.${column.javaType};
+#break
+#end
+#end
+
+/**
+ * ${table.classComment} Excel VO
+ *
+ * @author ${table.author}
+ */
+@Schema(description = "${sceneEnum.name} - ${table.classComment}Excel VO")
+@Data
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
+@Accessors(chain = false)
+public class ${sceneEnum.prefixClass}${table.className}ExcelVO {
+
+#foreach ($column in $columns)
+#if ($column.createOperation || $column.updateOperation)
+#if (!$column.primaryKey)
+    /**
+    * ${column.columnComment}
+    */
+#if ("" != $column.dictType)
+    @ExcelProperty(value = "${column.columnComment}", converter = DictConvert.class)
+#if ($isI18n)
+    @ExcelColumnSelect(dictType = "${column.dictType}", i18n = true)
+#else
+    @ExcelColumnSelect(dictType = "${column.dictType}")
+#end
+#if ($isI18n)
+    @ExcelI18n(i18nKey = "${i18nModuleType}.${table.businessName}.field.${column.javaField}")
+#end
+#else
+#if (${column.javaType} == "LocalDateTime")
+    @ExcelProperty(value = "${column.columnComment}")
+    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+#elseif (${column.javaType} == "LocalDate")
+    @ExcelProperty(value = "${column.columnComment}")
+    @DateTimeFormat(pattern = "yyyy-MM-dd")
+#else
+    @ExcelProperty("${column.columnComment}")
+#end
+#if ($isI18n)
+    @ExcelI18n(i18nKey = "${i18nModuleType}.${table.businessName}.field.${column.javaField}")
+#end
+#end
+## 2. 处理 Validator 参数校验
+#if (!${column.nullable} && !${column.primaryKey})
+    #if ($isI18n)
+    #if (${column.javaType} == 'String')
+    @I18nNotEmpty(i18nKey = "${i18nModuleType}.${table.businessName}.back.${column.javaField}.notEmpty", message = "${column.columnComment}不能为空")
+    #else
+    @I18nNotNull(i18nKey = "${i18nModuleType}.${table.businessName}.back.${column.javaField}.notNull", message = "${column.columnComment}不能为空")
+    #end
+    #else
+    #if (${column.javaType} == 'String')
+    @NotEmpty(message = "${column.columnComment}不能为空")
+    #else
+    @NotNull(message = "${column.columnComment}不能为空")
+    #end
+    #end
+#end
+    private ${column.javaType} ${column.javaField};
+
+#end
+#end
+#end
+}

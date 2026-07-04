@@ -1,0 +1,179 @@
+package com.lz.module.system.controller.admin.tenant;
+
+import com.lz.framework.apilog.core.annotation.ApiAccessLog;
+import com.lz.framework.common.enums.CommonStatusEnum;
+import com.lz.framework.common.pojo.CommonResult;
+import com.lz.framework.common.pojo.PageParam;
+import com.lz.framework.common.pojo.PageResult;
+import com.lz.framework.common.util.object.BeanUtils;
+import com.lz.framework.demoMode.annotation.DemoMode;
+import com.lz.framework.demoMode.enums.DemoModeEnum;
+import com.lz.framework.excel.core.util.ExcelUtils;
+import com.lz.framework.tenant.core.aop.TenantIgnore;
+import com.lz.module.system.controller.admin.tenant.vo.tenant.*;
+import com.lz.module.system.dal.dataobject.tenant.TenantDO;
+import com.lz.module.system.service.tenant.TenantService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.annotation.Resource;
+import jakarta.annotation.security.PermitAll;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Set;
+
+import static com.lz.framework.apilog.core.enums.OperateTypeEnum.EXPORT;
+import static com.lz.framework.common.pojo.CommonResult.success;
+import static com.lz.framework.common.util.collection.CollectionUtils.convertList;
+
+@Tag(name = "管理后台 - 租户")
+@RestController
+@RequestMapping("/system/tenant")
+public class TenantController {
+
+    @Resource
+    private TenantService tenantService;
+
+    @GetMapping("/get-id-by-name")
+    @PermitAll
+    @TenantIgnore
+    @Operation(summary = "使用租户名，获得租户编号", description = "登录界面，根据用户的租户名，获得租户编号")
+    @Parameter(name = "name", description = "租户名", required = true, example = "1024")
+    public CommonResult<Long> getTenantIdByName(@RequestParam("name") String name) {
+        TenantDO tenant = tenantService.getTenantByName(name);
+        return success(tenant != null ? tenant.getId() : null);
+    }
+
+    @GetMapping({"simple-list"})
+    @PermitAll
+    @TenantIgnore
+    @Operation(summary = "获取租户精简信息列表", description = "只包含被开启的租户，用于【首页】功能的选择租户选项")
+    public CommonResult<PageResult<TenantRespSimpleVO>> getTenantSimpleList(@Valid TenantPageReqVO pageVO) {
+        pageVO.setStatus(CommonStatusEnum.ENABLE.getStatus());
+        PageResult<TenantDO> pageResult = tenantService.getTenantPage(pageVO);
+        List<TenantRespSimpleVO> tenantRespSimpleVOS = convertList(pageResult.getList(), tenantDO ->
+                new TenantRespSimpleVO().setId(tenantDO.getId()).setName(tenantDO.getName()).setCode(tenantDO.getCode()));
+        return success(new PageResult<>(tenantRespSimpleVOS, pageResult.getTotal()));
+    }
+
+    @GetMapping("/get-by-website")
+    @PermitAll
+    @TenantIgnore
+    @Operation(summary = "使用域名，获得租户信息", description = "登录界面，根据用户的域名，获得租户信息")
+    @Parameter(name = "website", description = "域名", required = true, example = "www.iocoder.cn")
+    public CommonResult<TenantRespVO> getTenantByWebsite(@RequestParam("website") String website) {
+        TenantDO tenant = tenantService.getTenantByWebsite(website);
+        if (tenant == null || CommonStatusEnum.isDisable(tenant.getStatus())) {
+            return success(null);
+        }
+        return success(new TenantRespVO().setId(tenant.getId()).setName(tenant.getName()).setCode(tenant.getCode()));
+    }
+
+    @GetMapping("/get-by-code")
+    @PermitAll
+    @TenantIgnore
+    @Operation(summary = "使用编码，获得租户信息", description = "登录界面，根据用户的编码，获得租户信息")
+    @Parameter(name = "code", description = "编码", required = true, example = "litchi")
+    public CommonResult<TenantRespVO> getTenantByCode(@RequestParam("code") String code) {
+        TenantDO tenant = tenantService.selectByCode(code);
+        if (tenant == null || CommonStatusEnum.isDisable(tenant.getStatus())) {
+            return success(null);
+        }
+        return success(new TenantRespVO().setId(tenant.getId()).setName(tenant.getName()).setCode(tenant.getCode()));
+    }
+
+    @PostMapping("/create")
+    @Operation(summary = "创建租户")
+    @PreAuthorize("@ss.hasPermission('system:tenant:create')")
+    public CommonResult<TenantSaveRespVO> createTenant(@Valid @RequestBody TenantSaveReqVO createReqVO) {
+        return success(tenantService.createTenant(createReqVO));
+    }
+
+    @PutMapping("/update")
+    @Operation(summary = "更新租户")
+    @PreAuthorize("@ss.hasPermission('system:tenant:update')")
+    @DemoMode(allowed = DemoModeEnum.PUT, forbiddenFieldValues = {"id=1"})
+    public CommonResult<Boolean> updateTenant(@Valid @RequestBody TenantSaveReqVO updateReqVO) {
+        tenantService.updateTenant(updateReqVO);
+        return success(true);
+    }
+
+    @GetMapping("/update/all-tenant-menu")
+    @Operation(summary = "更新所有租户菜单")
+    @PreAuthorize("@ss.hasPermission('system:tenant:update')")
+    public CommonResult<Boolean> updateAllTenantMenu() {
+        return success(tenantService.updateAllTenantMenu());
+    }
+
+    @Operation(summary = "更新租户菜单")
+    @GetMapping("/update/code")
+    @PreAuthorize("@ss.hasPermission('system:tenant:update')")
+    public CommonResult<Boolean> updateTenantMenuByTenantCode(@RequestParam("code") String code) {
+        tenantService.updateTenantMenuByTenantCode(code);
+        return success(true);
+    }
+
+    @DeleteMapping("/delete")
+    @Operation(summary = "删除租户")
+    @Parameter(name = "id", description = "编号", required = true, example = "1024")
+    @PreAuthorize("@ss.hasPermission('system:tenant:delete')")
+    @DemoMode(allowed = DemoModeEnum.DELETE, forbiddenDeleteIds = {"1"})
+    public CommonResult<Boolean> deleteTenant(@RequestParam("id") Long id) {
+        tenantService.deleteTenant(id);
+        return success(true);
+    }
+
+    @DeleteMapping("/delete-list")
+    @Parameter(name = "ids", description = "编号列表", required = true)
+    @Operation(summary = "批量删除租户")
+    @PreAuthorize("@ss.hasPermission('system:tenant:delete')")
+    @DemoMode(allowed = DemoModeEnum.DELETE, forbiddenDeleteIds = {"1"})
+    public CommonResult<Boolean> deleteTenantList(@RequestParam("ids") List<Long> ids) {
+        tenantService.deleteTenantList(ids);
+        return success(true);
+    }
+
+    @GetMapping("/get")
+    @Operation(summary = "获得租户")
+    @Parameter(name = "id", description = "编号", required = true, example = "1024")
+    @PreAuthorize("@ss.hasPermission('system:tenant:query')")
+    public CommonResult<TenantRespVO> getTenant(@RequestParam("id") Long id) {
+        TenantDO tenant = tenantService.getTenant(id);
+        return success(BeanUtils.toBean(tenant, TenantRespVO.class));
+    }
+
+    @GetMapping("/menu")
+    @Operation(summary = "获得租户菜单")
+    @Parameter(name = "code", description = "编码", required = true, example = "1024")
+    @PreAuthorize("@ss.hasPermission('system:tenant:query')")
+    public CommonResult<Set<Long>> getTenantMenu(@RequestParam("code") String code) {
+        Set<Long> menuIds = tenantService.getTenantMenu(code);
+        return success(menuIds);
+    }
+
+    @GetMapping("/page")
+    @Operation(summary = "获得租户分页")
+    @PreAuthorize("@ss.hasPermission('system:tenant:query')")
+    public CommonResult<PageResult<TenantRespVO>> getTenantPage(@Valid TenantPageReqVO pageVO) {
+        PageResult<TenantDO> pageResult = tenantService.getTenantPage(pageVO);
+        return success(BeanUtils.toBean(pageResult, TenantRespVO.class));
+    }
+
+    @GetMapping("/export-excel")
+    @Operation(summary = "导出租户 Excel")
+    @PreAuthorize("@ss.hasPermission('system:tenant:export')")
+    @ApiAccessLog(operateType = EXPORT)
+    public void exportTenantExcel(@Valid TenantPageReqVO exportReqVO, HttpServletResponse response) throws IOException {
+        exportReqVO.setPageSize(PageParam.PAGE_SIZE_NONE);
+        List<TenantDO> list = tenantService.getTenantPage(exportReqVO).getList();
+        // 导出 Excel
+        ExcelUtils.write(response, "租户.xls", "数据", TenantRespVO.class,
+                BeanUtils.toBean(list, TenantRespVO.class));
+    }
+
+}

@@ -1,0 +1,236 @@
+package com.lz.module.system.service.tenant;
+
+import cn.hutool.core.date.DateTime;
+import cn.hutool.core.date.LocalDateTimeUtil;
+import com.lz.framework.common.pojo.PageResult;
+import com.lz.framework.common.util.collection.CollectionUtils;
+import com.lz.framework.common.util.date.DateUtils;
+import com.lz.framework.common.util.date.LocalDateTimeUtils;
+import com.lz.framework.common.util.object.BeanUtils;
+import com.lz.framework.tenant.core.util.TenantUtils;
+import com.lz.module.system.controller.admin.tenant.vo.packageSubscribe.TenantPackageSubscribePageReqVO;
+import com.lz.module.system.controller.admin.tenant.vo.packageSubscribe.TenantPackageSubscribeSaveReqVO;
+import com.lz.module.system.dal.dataobject.tenant.TenantDO;
+import com.lz.module.system.dal.dataobject.tenant.TenantPackageDO;
+import com.lz.module.system.dal.dataobject.tenant.TenantPackageSubscribeDO;
+import com.lz.module.system.dal.mysql.tenant.TenantPackageSubscribeMapper;
+import com.lz.module.system.enums.tenant.SystemTenantPackageSubscribeStatusEnum;
+import jakarta.annotation.Resource;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.validation.annotation.Validated;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import static com.lz.framework.common.exception.util.ServiceExceptionUtil.exception;
+import static com.lz.module.system.enums.ErrorCodeConstants.TENANT_PACKAGE_SUBSCRIBE_NOT_EXISTS;
+import static com.lz.module.system.enums.ErrorCodeConstants.TENANT_PACKAGE_SUBSCRIBE_PROHIBIT_TENANT_OR_PACKAGE_CHANGE;
+
+/**
+ * 租户套餐订阅 Service 实现类
+ *
+ * @author 荔枝软件
+ */
+@Service
+@Validated
+public class TenantPackageSubscribeServiceImpl implements TenantPackageSubscribeService {
+
+    @Resource
+    private TenantPackageSubscribeMapper tenantPackageSubscribeMapper;
+
+    @Resource
+    private TenantPackageService tenantPackageService;
+
+    @Resource
+    private TenantService tenantService;
+
+    @Resource
+    private TransactionTemplate transactionTemplate;
+
+    @Override
+    public Long createTenantPackageSubscribe(TenantPackageSubscribeSaveReqVO createReqVO) {
+        // 插入
+        TenantPackageSubscribeDO tenantPackageSubscribe = BeanUtils.toBean(createReqVO, TenantPackageSubscribeDO.class);
+        TenantDO tenantDO = initTenantPackageSubscribeByTenant(tenantPackageSubscribe);
+        //为租户重新授权，这里主要是给租户授权
+        TenantPackageDO tenantPackageDO = initTenantPackageSubscribeByPackage(tenantPackageSubscribe);
+        initTenantPackageSubscribeStatus(tenantPackageSubscribe);
+        //为订略的租户套餐订阅
+        TenantUtils.execute(tenantDO.getId(), () -> {
+            tenantService.updateTenantMenuByTenantAndPackageAndSubscribe(tenantDO, tenantPackageDO, tenantPackageSubscribe);
+            transactionTemplate.executeWithoutResult(status -> {
+                tenantPackageSubscribeMapper.insert(tenantPackageSubscribe);
+                //更新租户套餐订阅数量
+                tenantPackageService.updateTenantPackage(tenantPackageDO);
+            });
+        });
+        // 返回
+        return tenantPackageSubscribe.getId();
+    }
+
+    private static void initTenantPackageSubscribeStatus(TenantPackageSubscribeDO tenantPackageSubscribe) {
+        //开始时间是订阅开始时间的那一天
+        DateTime startDateTime = DateUtils.beginOfDay(DateUtils.of(tenantPackageSubscribe.getStartTime()));
+        //结束时间是订阅结束时间的最后时间
+        LocalDateTime endLocalDateTime = tenantPackageSubscribe.getStartTime().plusDays(tenantPackageSubscribe.getDays());
+        DateTime endDateTime = DateUtils.endOfDay(DateUtils.of(endLocalDateTime));
+        tenantPackageSubscribe.setStartTime(LocalDateTimeUtils.of(startDateTime));
+        tenantPackageSubscribe.setEndTime(LocalDateTimeUtils.of(endDateTime));
+        //如果关闭不管
+        if (tenantPackageSubscribe.getStatus()
+                .equals(SystemTenantPackageSubscribeStatusEnum.SYSTEM_TENANT_PACKAGE_SUBSCRIBE_STATUS_ENUM_4.getStatus())) {
+            return;
+        }
+        //首先判断开始结束时间，是否在内,如果不在
+        else if (LocalDateTimeUtil.isIn(LocalDateTimeUtil.now(), tenantPackageSubscribe.getStartTime(), tenantPackageSubscribe.getEndTime())) {
+            tenantPackageSubscribe.setStatus(SystemTenantPackageSubscribeStatusEnum.SYSTEM_TENANT_PACKAGE_SUBSCRIBE_STATUS_ENUM_2.getStatus());
+        } else if (tenantPackageSubscribe.getStartTime().isAfter(LocalDateTimeUtil.now())) {
+            tenantPackageSubscribe.setStatus(SystemTenantPackageSubscribeStatusEnum.SYSTEM_TENANT_PACKAGE_SUBSCRIBE_STATUS_ENUM_1.getStatus());
+        } else {
+            tenantPackageSubscribe.setStatus(SystemTenantPackageSubscribeStatusEnum.SYSTEM_TENANT_PACKAGE_SUBSCRIBE_STATUS_ENUM_3.getStatus());
+        }
+    }
+
+    @Override
+    public Long insertTenantPackageSubscribe(TenantPackageSubscribeDO tenantPackageSubscribe) {
+        tenantPackageSubscribeMapper.insert(tenantPackageSubscribe);
+        return tenantPackageSubscribe.getId();
+    }
+
+    private TenantPackageDO initTenantPackageSubscribeByPackage(TenantPackageSubscribeDO tenantPackageSubscribe) {
+        //查看租户套餐
+        TenantPackageDO tenantPackage = tenantPackageService.validTenantPackageByCode(tenantPackageSubscribe.getPackageCode());
+        tenantPackageSubscribe.setPackageName(tenantPackage.getName());
+        tenantPackageSubscribe.setPackageCode(tenantPackage.getCode());
+        tenantPackageSubscribe.setPrice(tenantPackage.getPrice());
+        tenantPackageSubscribe.setPackageLogo(tenantPackage.getLogo());
+        tenantPackageSubscribe.setPackageStatus(tenantPackage.getStatus());
+        tenantPackageSubscribe.setPackageType(tenantPackage.getType());
+        //计算订阅金额=订阅金额*天数/30-优惠金额
+        BigDecimal daysDecimal = new BigDecimal(tenantPackageSubscribe.getDays());
+        if (daysDecimal.compareTo(BigDecimal.ZERO) <= 0 || tenantPackage.getPrice().compareTo(BigDecimal.ZERO) <= 0) {
+            tenantPackageSubscribe.setTotalPrice(BigDecimal.ZERO);
+        } else {
+            tenantPackageSubscribe.setTotalPrice(tenantPackage.getPrice()
+                    .multiply(daysDecimal)
+                    .divide(new BigDecimal(30), RoundingMode.HALF_UP)
+                    .subtract(tenantPackageSubscribe.getDiscountPrice()));
+        }
+        tenantPackage.setSubscriptionNum(tenantPackage.getSubscriptionNum() + 1);
+        return tenantPackage;
+    }
+
+    private TenantDO initTenantPackageSubscribeByTenant(TenantPackageSubscribeDO tenantPackageSubscribe) {
+        //租户
+        TenantDO tenant = tenantService.validTenantByCode(tenantPackageSubscribe.getTenantCode());
+        //租户、租户套餐不可改变
+        tenantPackageSubscribe.setTenantName(tenant.getName());
+        tenantPackageSubscribe.setTenantCode(tenant.getCode());
+        return tenant;
+    }
+
+    @Override
+    public void updateTenantPackageSubscribe(TenantPackageSubscribeSaveReqVO updateReqVO) {
+        //这里必须是系统租户才可以操作所有的租户，如果不是系统租户，他有权限的话也只能操作自己的
+        //因为如果是所有租户都可以不限制操作的话，会影响数据的一致性，越权等风险
+        TenantUtils.executeSystemOrTenant(() -> updateTenantPackageSubscribeByTenant(updateReqVO));
+    }
+
+    private void updateTenantPackageSubscribeByTenant(TenantPackageSubscribeSaveReqVO updateReqVO) {
+        // 校验存在
+        TenantPackageSubscribeDO tenantPackageSubscribeDO = validateTenantPackageSubscribeExists(updateReqVO.getId());
+        //租户、租户套餐不可改变
+        if (!tenantPackageSubscribeDO.getTenantCode().equals(updateReqVO.getTenantCode()) || !tenantPackageSubscribeDO.getPackageCode().equals(updateReqVO.getPackageCode())) {
+            throw exception(TENANT_PACKAGE_SUBSCRIBE_PROHIBIT_TENANT_OR_PACKAGE_CHANGE);
+        }
+        // 更新
+        TenantPackageSubscribeDO updateObj = BeanUtils.toBean(updateReqVO, TenantPackageSubscribeDO.class);
+        initTenantPackageSubscribeByTenant(updateObj);
+        initTenantPackageSubscribeByPackage(updateObj);
+        initTenantPackageSubscribeStatus(updateObj);
+        transactionTemplate.executeWithoutResult(result -> {
+            //这里必须开启事物，因为需要先更新
+            tenantPackageSubscribeMapper.updateById(updateObj);
+            if (!tenantPackageSubscribeDO.getStatus().equals(updateObj.getStatus())) {
+                //查询到租户
+                TenantDO tenant = tenantService.selectByCode(tenantPackageSubscribeDO.getTenantCode());
+                //更新租户权限
+                tenantService.updateTenantMenuByTenant(tenant);
+            }
+        });
+    }
+
+    @Override
+    public void deleteTenantPackageSubscribe(Long id) {
+        TenantUtils.executeSystemOrTenant(
+                () -> {
+                    // 校验存在
+                    TenantPackageSubscribeDO tenantPackageSubscribeDO = validateTenantPackageSubscribeExists(id);
+                    tenantPackageSubscribeMapper.deleteById(id);
+                    tenantService.updateTenantMenuByTenantCode(tenantPackageSubscribeDO.getTenantCode());
+                });
+    }
+
+    @Override
+    public void deleteTenantPackageSubscribeListByIds(List<Long> ids) {
+        if (CollectionUtils.isEmpty(ids)) {
+            return;
+        }
+        TenantUtils.executeSystemOrTenant(
+                () -> {
+                    //先查询所有的订阅
+                    List<TenantPackageSubscribeDO> tenantPackageSubscribes = tenantPackageSubscribeMapper.selectByIds(ids);
+                    // 删除
+                    tenantPackageSubscribeMapper.deleteByIds(ids);
+                    //遍历去除得到所有的租户Code
+                    Set<String> tenantCodes = tenantPackageSubscribes.stream().map(TenantPackageSubscribeDO::getTenantCode).collect(Collectors.toSet());
+                    for (String tenantCode : tenantCodes) {
+                        tenantService.updateTenantMenuByTenantCode(tenantCode);
+                    }
+                });
+    }
+
+
+    private TenantPackageSubscribeDO validateTenantPackageSubscribeExists(Long id) {
+        TenantPackageSubscribeDO tenantPackageSubscribeDO = tenantPackageSubscribeMapper.selectById(id);
+        if (tenantPackageSubscribeDO == null) {
+            throw exception(TENANT_PACKAGE_SUBSCRIBE_NOT_EXISTS);
+        }
+        return tenantPackageSubscribeDO;
+    }
+
+    //查询时是需要去掉租户来保证可以看到所有的套餐订阅
+    @Override
+    public TenantPackageSubscribeDO getTenantPackageSubscribe(Long id) {
+        return TenantUtils.executeSystemOrTenant(
+                () -> tenantPackageSubscribeMapper.selectById(id)
+        );
+    }
+
+
+    //查询时是需要去掉租户来保证可以看到所有的套餐订阅
+    @Override
+    public PageResult<TenantPackageSubscribeDO> getTenantPackageSubscribePage(TenantPackageSubscribePageReqVO pageReqVO) {
+        return TenantUtils.executeSystemOrTenant(() -> tenantPackageSubscribeMapper.selectPage(pageReqVO));
+    }
+
+    @Override
+    public List<TenantPackageSubscribeDO> selectSubscribeByCurrentDateAndPackageCode(String packageCode) {
+        return tenantPackageSubscribeMapper.selectSubscribeByCurrentDateAndPackageCode(packageCode);
+    }
+
+    @Override
+    public List<TenantPackageSubscribeDO> selectSubscribeByCurrentDateAndTenantCode(String tenantCode) {
+        return tenantPackageSubscribeMapper.selectSubscribeByCurrentDateAndTenantCode(tenantCode);
+    }
+
+    @Override
+    public void updateBatch(List<TenantPackageSubscribeDO> tenantPackageSubscribeDOS) {
+        tenantPackageSubscribeMapper.updateBatch(tenantPackageSubscribeDOS);
+    }
+}

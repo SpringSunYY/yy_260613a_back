@@ -1,0 +1,36 @@
+#if ($extendConfig.get('isImport') != '1')
+<script lang="ts" setup>
+#set ($isI18n = $extendConfig.get('isI18n') == '0')
+#set ($i18nModuleType = $extendConfig.get('i18nModuleType'))
+#if($isI18n)
+import { $t } from '@vben/locales';
+#end
+import {
+  import${simpleClassName},
+  import${simpleClassName}Template,
+} from '#/api/${table.moduleName}/${table.businessName}';
+import { ImportExcel } from '#/components/import-excel';
+
+import { use${simpleClassName}ImportSchema } from '../data';
+
+const emit = defineEmits(['success']);
+</script>
+<template>
+    <ImportExcel
+        #if($isI18n)
+        :title="$t('ui.actionTitle.import', [$t('${i18nModuleType}.${table.businessName}.${table.businessName}')])"
+        #else
+        :title="$t('ui.actionTitle.import', ['${table.classComment}'])"
+        #end
+        :import-api="import${simpleClassName}"
+        :template-api="import${simpleClassName}Template"
+        #if($isI18n)
+        :template-file-name="$t('ui.actionTitle.importTemplate', [$t('${i18nModuleType}.${table.businessName}.${table.businessName}')]) + '.xlsx'"
+        #else
+        :template-file-name="$t('ui.actionTitle.importTemplate', ['${table.classComment}']) + '.xlsx'"
+        #end
+        :form-schema="use${simpleClassName}ImportSchema"
+        @success="emit('success')"
+    />
+    </template>
+#end

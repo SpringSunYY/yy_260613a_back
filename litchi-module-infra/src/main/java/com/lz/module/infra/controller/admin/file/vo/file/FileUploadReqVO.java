@@ -1,0 +1,23 @@
+package com.lz.module.infra.controller.admin.file.vo.file;
+
+import com.lz.framework.common.validation.i18n.I18nNotNull;
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.Data;
+import org.springframework.web.multipart.MultipartFile;
+
+@Schema(description = "管理后台 - 上传文件 Request VO")
+@Data
+public class FileUploadReqVO {
+
+    @Schema(description = "文件附件", requiredMode = Schema.RequiredMode.REQUIRED)
+    @I18nNotNull(i18nKey = "infra.file.back.file.notNull", message = "文件附件不能为空")
+    private MultipartFile file;
+
+    @Schema(description = "文件目录", example = "XXX/YYY")
+    private String directory;
+
+    @Schema(description = "模块", example = "infra")
+    private String moduleType;
+
+
+}

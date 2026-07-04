@@ -1,0 +1,102 @@
+package com.lz.module.system.controller.admin.logger.vo.operatelog;
+
+import com.alibaba.excel.annotation.ExcelIgnoreUnannotated;
+import com.alibaba.excel.annotation.ExcelProperty;
+import com.fhs.core.trans.anno.Trans;
+import com.fhs.core.trans.constant.TransType;
+import com.fhs.core.trans.vo.VO;
+import com.lz.framework.common.validation.i18n.I18nNotEmpty;
+import com.lz.framework.excel.core.annotations.ExcelI18n;
+import com.lz.module.system.dal.dataobject.user.AdminUserDO;
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.Data;
+
+import java.time.LocalDateTime;
+
+@Schema(description = "管理后台 - 操作日志 Response VO")
+@Data
+@ExcelIgnoreUnannotated
+public class OperateLogRespVO implements VO {
+
+    @Schema(description = "日志编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "1024")
+    @ExcelProperty("日志编号")
+    @ExcelI18n(i18nKey = "system.operateLog.field.id")
+    private Long id;
+
+    @Schema(description = "链路追踪编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "89aca178-a370-411c-ae02-3f0d672be4ab")
+    private String traceId;
+
+    @Schema(description = "用户编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "1024")
+    @Trans(type = TransType.SIMPLE, target = AdminUserDO.class, fields = "nickname", ref = "userName")
+    private Long userId;
+    @Schema(description = "用户昵称", requiredMode = Schema.RequiredMode.REQUIRED, example = "YY")
+    @ExcelProperty("操作人")
+    @ExcelI18n(i18nKey = "system.operateLog.field.userName")
+    private String userName;
+
+    @Schema(description = "操作模块类型", requiredMode = Schema.RequiredMode.REQUIRED, example = "订单")
+    @ExcelProperty("操作模块类型")
+    @ExcelI18n(i18nKey = "system.operateLog.field.type")
+    private String type;
+
+    @Schema(description = "操作名", requiredMode = Schema.RequiredMode.REQUIRED, example = "创建订单")
+    @ExcelProperty("操作名")
+    @ExcelI18n(i18nKey = "system.operateLog.field.subType")
+    private String subType;
+
+    @Schema(description = "操作模块业务编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
+    @ExcelProperty("操作模块业务编号")
+    @ExcelI18n(i18nKey = "system.operateLog.field.bizId")
+    private Long bizId;
+
+    @Schema(description = "操作明细", example = "修改编号为 1 的用户信息，将性别从男改成女，将姓名从荔枝改成源码。")
+    private String action;
+
+    @Schema(description = "拓展字段", example = "{'orderId': 1}")
+    private String extra;
+
+    @Schema(description = "请求方法名", requiredMode = Schema.RequiredMode.REQUIRED, example = "GET")
+    @I18nNotEmpty(i18nKey = "system.operateLog.back.requestMethod.notEmpty", message = "请求方法名不能为空")
+    private String requestMethod;
+
+    @Schema(description = "请求地址", requiredMode = Schema.RequiredMode.REQUIRED, example = "/xxx/yyy")
+    private String requestUrl;
+
+    /**
+     * 用户 IP
+     */
+    @Schema(description = "用户 IP", requiredMode = Schema.RequiredMode.REQUIRED)
+    private String userIp;
+
+    /**
+     * IP属地
+     */
+    @Schema(description = "IP属地", requiredMode = Schema.RequiredMode.REQUIRED)
+    private String userIpAddr;
+
+    /**
+     * 浏览器 UA
+     */
+    @Schema(description = "浏览器 UA", requiredMode = Schema.RequiredMode.REQUIRED)
+    private String userAgent;
+
+    /**
+     * 浏览器
+     */
+    @Schema(description = "浏览器", requiredMode = Schema.RequiredMode.REQUIRED)
+    private String userBrowser;
+
+    /**
+     * 操作系统
+     */
+    @Schema(description = "操作系统", requiredMode = Schema.RequiredMode.REQUIRED)
+    private String userPlatform;
+
+    /**
+     * 创建时间
+     */
+    @Schema(description = "创建时间", requiredMode = Schema.RequiredMode.REQUIRED)
+    private LocalDateTime createTime;
+
+
+}

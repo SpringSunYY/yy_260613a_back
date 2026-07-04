@@ -1,0 +1,71 @@
+package com.lz.module.infra.framework.file.core.client.db;
+
+import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.util.StrUtil;
+import cn.hutool.extra.spring.SpringUtil;
+import com.lz.module.infra.dal.dataobject.file.FileContentDO;
+import com.lz.module.infra.dal.mysql.file.FileContentMapper;
+import com.lz.module.infra.framework.file.core.client.AbstractFileClient;
+
+import java.util.Comparator;
+import java.util.List;
+
+/**
+ * 基于 DB 存储的文件客户端的配置类
+ *
+ * @author 荔枝源码
+ */
+public class DBFileClient extends AbstractFileClient<DBFileClientConfig> {
+
+    private FileContentMapper fileContentMapper;
+
+    public DBFileClient(String configKey, DBFileClientConfig config) {
+        super(configKey, config);
+    }
+
+    @Override
+    protected void doInit() {
+        fileContentMapper = SpringUtil.getBean(FileContentMapper.class);
+    }
+
+    @Override
+    public String upload(byte[] content, String path, String type, String moduleType) {
+        String name = cn.hutool.core.io.FileUtil.mainName(path);
+        String absolutePath = super.formatFileUrl(config.getDomain(), path);
+        String relativePath = StrUtil.appendIfMissing(config.getDomain(), "/") + path;
+
+        FileContentDO contentDO = new FileContentDO().setConfigKey(getConfigKey())
+                .setName(name).setPath(path)
+                .setAbsolutePath(absolutePath).setRelativePath(relativePath)
+                .setType(type).setSize(content.length).setModuleType(moduleType)
+                .setContent(content);
+        fileContentMapper.insert(contentDO);
+        // 拼接返回路径
+        return absolutePath;
+    }
+
+    @Override
+    public void delete(String path) {
+        fileContentMapper.deleteByConfigKeyAndPath(getConfigKey(), path);
+    }
+
+    @Override
+    public byte[] getContent(String path) {
+        List<FileContentDO> list = fileContentMapper.selectListByConfigKeyAndPath(getConfigKey(), path);
+        if (CollUtil.isEmpty(list)) {
+            return null;
+        }
+        // 排序后，拿 id 最大的，即最后上传的
+        list.sort(Comparator.comparing(FileContentDO::getId));
+        return CollUtil.getLast(list).getContent();
+    }
+
+    /**
+     * 更新文件元数据（同步 FileDO 的信息到 FileContentDO）
+     */
+    public void updateMetadata(String path, String name, String type, Integer size) {
+        FileContentDO updateDO = new FileContentDO().setName(name).setType(type).setSize(size);
+        fileContentMapper.updateByConfigKeyAndPath(getConfigKey(), path, updateDO);
+    }
+
+}
