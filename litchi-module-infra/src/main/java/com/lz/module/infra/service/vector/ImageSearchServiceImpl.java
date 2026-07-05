@@ -28,6 +28,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.InputStream;
+import java.nio.file.Path;
 import java.util.*;
 
 import static com.lz.framework.vector.core.vector.ImageIndexService.IMG_EXT;
@@ -203,29 +204,33 @@ public class ImageSearchServiceImpl implements ImageSearchService {
         if (files.isEmpty()) {
             return resp.build();
         }
-        // 一次性按 name 查 infra_file
-        List<String> names = new ArrayList<>(files.size());
+        // 用 root 的相对路径拼出“祖先目录_文件名”作为 newName，防止不同子目录下的同名文件被误判重复
+        Path rootPath = root.toPath();
+        List<String> newNames = new ArrayList<>(files.size());
         for (File f : files) {
-            names.add(f.getName());
+            newNames.add(buildNewName(rootPath, f));
         }
-        Set<String> existing = fileService.getExistingFileNames(names);
+        // 一次性按 newName 查 infra_file
+        Set<String> existing = fileService.getExistingFileNames(newNames);
 
-        for (File f : files) {
+        for (int i = 0; i < files.size(); i++) {
+            File f = files.get(i);
             String name = f.getName();
+            String newName = newNames.get(i);
             if (f.length() == 0) {
                 resp.failed(BatchUploadRespVO.FailedItem.of(name,
                         resolveI18nMessage(ErrorCodeConstants.VECTOR_IMAGE_FILE_EMPTY)));
                 failedCount++;
                 continue;
             }
-            if (existing.contains(name)) {
+            if (existing.contains(newName)) {
                 resp.skipped(BatchUploadRespVO.SkippedItem.of(name, null));
                 continue;
             }
             Long fileId = null;
             try {
                 byte[] content = FileUtil.readBytes(f);
-                FileUploadRespVO uploaded = fileService.createFile(content, name,
+                FileUploadRespVO uploaded = fileService.createFile(content, newName,
                         null, guessContentType(name), "infra");
                 fileId = uploaded.getId();
                 UploadRespVO indexed = uploadImage(uploaded.getUrl(), content, uploaded.getId());
@@ -248,6 +253,32 @@ public class ImageSearchServiceImpl implements ImageSearchService {
         log.info("[importFromDirectory] 完成 total={}, scanned={}, skipped={}, failed={}, inserted={}",
                 files.size(), files.size(), existing.size(), failedCount, insertedCount);
         return resp.build();
+    }
+
+    /**
+     * 用文件相对于 root 的路径，构造“祖先目录_文件名”作为新的存储名。
+     * 例如 root=G:\26\yy260613a\images，文件=1.png → images_1.png
+     *     root=G:\26\yy260613a\images，文件=web\2.png → images_web_2.png
+     */
+    private static String buildNewName(Path rootPath, File f) {
+        Path filePath = f.toPath();
+        Path rel = rootPath.relativize(filePath);
+        StringBuilder sb = new StringBuilder();
+        // 用父路径的所有段（不含文件名）
+        Path parent = rel.getParent();
+        if (parent != null) {
+            for (Path seg : parent) {
+                if (!sb.isEmpty()) {
+                    sb.append('_');
+                }
+                sb.append(seg.toString());
+            }
+        }
+        if (!sb.isEmpty()) {
+            sb.append('_');
+        }
+        sb.append(rel.getFileName().toString());
+        return sb.toString();
     }
 
     /**

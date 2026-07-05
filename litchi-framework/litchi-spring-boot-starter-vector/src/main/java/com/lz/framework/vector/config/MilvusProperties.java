@@ -19,6 +19,19 @@ public class MilvusProperties {
     /** Milvus 服务端口 */
     private int port = 19530;
 
+    /**
+     * 登录用户名（可选）。
+     * <p>对应 Milvus 内置鉴权 {@code root} 用户，或 Zilliz Cloud 的 {@code dbname} 用户。
+     * 为空时表示当前 Milvus 未启用鉴权（默认）。
+     */
+    private String username;
+
+    /**
+     * 登录密码（可选）。
+     * <p>密码留空时按"不启用鉴权"处理（即不使用 token）。
+     */
+    private String password;
+
     /** 集合名前缀，dynamic-collection=true 时自动拼接当前模块名 */
     private String collectionName = "image_search";
 

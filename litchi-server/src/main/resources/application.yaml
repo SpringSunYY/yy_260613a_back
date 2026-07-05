@@ -387,7 +387,7 @@ litchi:
     # ==============================================================
     embedding:
       # 当前激活的模型
-      model: siglip
+      model: dino
       # 推理设备：cpu / cuda
       device: cpu
       # 批量推理 batch size

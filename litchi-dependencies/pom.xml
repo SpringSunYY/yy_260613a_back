@@ -81,7 +81,7 @@
         <jimureport.version>1.9.4</jimureport.version>
         <weixin-java.version>4.7.5.B</weixin-java.version>
         <!--向量vector-->
-        <milvus.version>2.4.5</milvus.version>
+        <milvus.version>2.6.22</milvus.version>
         <onnx.version>1.18.0</onnx.version>
         <opencv.version>4.9.0-0</opencv.version>
         <webp-imageio.version>0.1.6</webp-imageio.version>

@@ -10,8 +10,8 @@ import com.lz.framework.vector.core.feature.SiglipFeatureExtractor;
 import com.lz.framework.vector.core.isolation.VectorTenantContext;
 import com.lz.framework.vector.core.milvus.MilvusService;
 import com.lz.framework.vector.core.vector.ImageIndexService;
-import io.milvus.client.MilvusServiceClient;
-import io.milvus.param.ConnectParam;
+import io.milvus.v2.client.ConnectConfig;
+import io.milvus.v2.client.MilvusClientV2;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
@@ -65,9 +65,9 @@ public class VectorAutoConfiguration {
      */
     @PostConstruct
     public void onLoaded() {
-        log.info("[VectorAutoConfiguration] ✅ 向量模块自动配置已加载。"
+        log.info("[VectorAutoConfiguration] 向量模块自动配置已加载。"
                 + "编排层（FeatureService / MilvusService / ImageIndexService）始终注册，"
-                + "重量级层（MilvusServiceClient / *FeatureExtractor）由 litchi.vector.enable 控制。");
+                + "重量级层（MilvusClientV2 / *FeatureExtractor）由 litchi.vector.enable 控制。");
     }
 
     // ==================== 特征提取器（按 embedding.model 条件装配，仅 enable=true 时注册） ====================
@@ -109,21 +109,54 @@ public class VectorAutoConfiguration {
     // ==================== Milvus gRPC 客户端（仅 enable=true 时注册） ====================
 
     /**
-     * Milvus gRPC 客户端单例。Spring 关闭时自动调用 close()。
+     * Milvus gRPC 客户端单例（V2 SDK {@link MilvusClientV2}）。Spring 关闭时自动调用 close()。
      *
-     * <p>注意：{@link MilvusServiceClient} 构造时会立即建立 gRPC channel 并尝试握手，
-     * 所以这里挂 {@code litchi.vector.enable=true} 条件 —— 关闭时不创建，
-     * 编排层通过 {@link ObjectProvider} 懒拿，拿不到就抛 {@link com.lz.framework.vector.core.exception.VectorDisabledException}。
+     * <p>{@link MilvusClientV2} 是 milvus-sdk-java 2.5+ 引入的 V2 客户端，相比 2.4.5 的
+     * {@code MilvusServiceClient} 主要差异：
+     * <ul>
+     *   <li>支持运行时 {@code useDatabase(database)} —— 解锁 v1 SDK 上不可用的"按租户切库"隔离模式</li>
+     *   <li>{@code QueryReq} / {@code SearchReq} 支持 {@code offset} + {@code limit} 真分页
+     *       （v1 SDK 的 {@code QueryParam} 不带 {@code offset}，这是上一版分页必须全集加载的根因）</li>
+     *   <li>builder 风格、返回 {@code QueryResp / SearchResp} 而不是 {@code R<T>}</li>
+     * </ul>
+     *
+     * <p>服务端必须 ≥ 2.5.x 才能完整支持 V2 API 的语义。Milvus 2.4.x 服务端兼容大部分 V2 SDK 调用，
+     * 但 offset/limit 受服务端 {@code quotaAndLimits.limits.maxQueryResultWindow} 限制（默认 16384）。
      */
     @Bean(destroyMethod = "close")
     @ConditionalOnProperty(name = "litchi.vector.enable", havingValue = "true")
-    public MilvusServiceClient milvusServiceClient(MilvusProperties props) {
-        log.info("[VectorAutoConfiguration] 注册 MilvusServiceClient（{}:{}）", props.getHost(), props.getPort());
-        ConnectParam connectParam = ConnectParam.newBuilder()
-                .withHost(props.getHost())
-                .withPort(props.getPort())
+    public MilvusClientV2 milvusClientV2(MilvusProperties props) {
+        String uri = "http://" + props.getHost() + ":" + props.getPort();
+        String token = buildToken(props);
+        if (token != null) {
+            log.info("[VectorAutoConfiguration] 注册 MilvusClientV2（{}，启用鉴权）", uri);
+            ConnectConfig connectConfig = ConnectConfig.builder()
+                    .uri(uri)
+                    .token(token)
+                    .build();
+            return new MilvusClientV2(connectConfig);
+        }
+        log.info("[VectorAutoConfiguration] 注册 MilvusClientV2（{}，未启用鉴权）", uri);
+        ConnectConfig connectConfig = ConnectConfig.builder()
+                .uri(uri)
                 .build();
-        return new MilvusServiceClient(connectParam);
+        return new MilvusClientV2(connectConfig);
+    }
+
+    /**
+     * 拼装 Milvus 鉴权 token。
+     * <ul>
+     *   <li>username & password 都非空 → {@code "username:password"}</li>
+     *   <li>Zilliz Cloud / 托管 Milvus：username/password 通常等价于 user/apikey</li>
+     *   <li>二者任一为空 → 返回 null，调用方按"不启用鉴权"处理</li>
+     * </ul>
+     */
+    private String buildToken(MilvusProperties props) {
+        if (props.getUsername() == null || props.getUsername().isBlank()
+                || props.getPassword() == null || props.getPassword().isBlank()) {
+            return null;
+        }
+        return props.getUsername() + ":" + props.getPassword();
     }
 
     // ==================== 编排层（始终注册） ====================
@@ -142,7 +175,7 @@ public class VectorAutoConfiguration {
      * 没引 biz-tenant 时本字段无实现，{@link MilvusService} 走 {@code _default}。
      */
     @Bean
-    public MilvusService milvusService(ObjectProvider<MilvusServiceClient> milvusClientProvider,
+    public MilvusService milvusService(ObjectProvider<MilvusClientV2> milvusClientProvider,
                                        ObjectProvider<FeatureExtractor> featureExtractorProvider,
                                        ObjectProvider<VectorTenantContext> tenantContextProvider,
                                        MilvusProperties milvusProps) {

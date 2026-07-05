@@ -6,12 +6,7 @@ import com.lz.framework.common.pojo.PageResult;
 import com.lz.framework.vector.core.pojo.SearchResult;
 import com.lz.module.infra.controller.admin.file.vo.file.FileUploadReqVO;
 import com.lz.module.infra.controller.admin.file.vo.file.FileUploadRespVO;
-import com.lz.module.infra.controller.admin.vector.vo.BatchUploadRespVO;
-import com.lz.module.infra.controller.admin.vector.vo.UploadRespVO;
-import com.lz.module.infra.controller.admin.vector.vo.UploadUrlsReqVO;
-import com.lz.module.infra.controller.admin.vector.vo.VectorImagePageReqVO;
-import com.lz.module.infra.controller.admin.vector.vo.VectorImageRespVO;
-import com.lz.module.infra.controller.admin.vector.vo.VectorImageSearchReqVO;
+import com.lz.module.infra.controller.admin.vector.vo.*;
 import com.lz.module.infra.dal.dataobject.file.FileDO;
 import com.lz.module.infra.service.file.FileService;
 import com.lz.module.infra.service.vector.ImageSearchService;
@@ -183,10 +178,10 @@ public class VectorImageController {
     @PostMapping("/search/upload")
     @Operation(summary = "以图搜图（按上传图片）")
     @PreAuthorize("@ss.hasPermission('infra:vectorImage:search')")
-    public CommonResult<List<SearchResult>> searchByUpload(@RequestParam("file") MultipartFile file,
-                                                           @RequestParam(value = "topK", defaultValue = "10") Integer topK)
+    public CommonResult<List<SearchResult>> searchByUpload(@Valid VectorImageSearchReqVO reqVO)
             throws Exception {
-        return success(imageSearchService.searchByStream(file.getInputStream(), topK == null ? 10 : topK));
+        return success(imageSearchService
+                .searchByStream(reqVO.getFile().getInputStream(), reqVO.getTopK()));
     }
 
     /**
