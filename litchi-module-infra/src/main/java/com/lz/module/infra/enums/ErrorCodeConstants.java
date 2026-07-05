@@ -101,4 +101,19 @@ public interface ErrorCodeConstants {
     // ========== 向量 ==========
     ErrorCode VECTOR_NOT_EXISTS = new ErrorCode(1_001_010_000, "infra.vector.back.notExists", "向量不存在");
     ErrorCode VECTOR_FILE_ERROR = new ErrorCode(1_001_010_001, "infra.vector.back.fileError", "向量文件错误");
+
+    // ========== 以图搜图 1-001-010-100 ==========
+    // 业务名推导：常量名首段 VECTOR_IMAGE → vectorImage
+    ErrorCode VECTOR_IMAGE_NOT_EXISTS = new ErrorCode(1_001_010_100, "infra.vectorImage.back.notExists", "图片不存在");
+    ErrorCode VECTOR_IMAGE_VECTOR_EMPTY = new ErrorCode(1_001_010_101, "infra.vectorImage.back.vectorEmpty", "图片向量为空");
+    ErrorCode VECTOR_IMAGE_URLS_NOT_EMPTY = new ErrorCode(1_001_010_102, "infra.vectorImage.back.urls.notEmpty", "URL 列表不能为空");
+    ErrorCode VECTOR_IMAGE_TOPK_MIN = new ErrorCode(1_001_010_103, "infra.vectorImage.back.topK.min", "topK 必须大于 0");
+    ErrorCode VECTOR_IMAGE_TOPK_MAX = new ErrorCode(1_001_010_104, "infra.vectorImage.back.topK.max", "topK 不能超过 1000");
+    ErrorCode VECTOR_IMAGE_DIR_EMPTY = new ErrorCode(1_001_010_105, "infra.vectorImage.back.dir.empty", "目录不能为空");
+    ErrorCode VECTOR_IMAGE_DIR_NOT_EXISTS = new ErrorCode(1_001_010_106, "infra.vectorImage.back.dir.notExists", "目录不存在或不是文件夹");
+    ErrorCode VECTOR_IMAGE_DIR_SCAN_FAILED = new ErrorCode(1_001_010_107, "infra.vectorImage.back.dir.scanFailed", "扫描目录失败");
+    ErrorCode VECTOR_IMAGE_URL_DOWNLOAD_FAILED = new ErrorCode(1_001_010_108, "infra.vectorImage.back.url.downloadFailed", "图片下载失败");
+    ErrorCode VECTOR_IMAGE_FILE_PROCESS_FAILED = new ErrorCode(1_001_010_109, "infra.vectorImage.back.file.processFailed", "图片处理失败");
+    ErrorCode VECTOR_IMAGE_FILE_EMPTY = new ErrorCode(1_001_010_110, "infra.vectorImage.back.file.empty", "文件为空");
+    ErrorCode VECTOR_IMAGE_FEATURE_EXTRACT_FAILED = new ErrorCode(1_001_010_111, "infra.vectorImage.back.feature.extractFailed", "图片特征提取失败");
 }

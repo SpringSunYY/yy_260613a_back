@@ -84,6 +84,7 @@
         <milvus.version>2.4.5</milvus.version>
         <onnx.version>1.18.0</onnx.version>
         <opencv.version>4.9.0-0</opencv.version>
+        <webp-imageio.version>0.1.6</webp-imageio.version>
     </properties>
 
     <dependencyManagement>
@@ -689,6 +690,13 @@
                 <groupId>org.openpnp</groupId>
                 <artifactId>opencv</artifactId>
                 <version>${opencv.version}</version>
+            </dependency>
+
+            <!-- webp-imageio：补 JDK ImageIO 不识别的 webp 格式（SPI 自动注册 WEBP ImageReader） -->
+            <dependency>
+                <groupId>org.sejda.imageio</groupId>
+                <artifactId>webp-imageio</artifactId>
+                <version>${webp-imageio.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

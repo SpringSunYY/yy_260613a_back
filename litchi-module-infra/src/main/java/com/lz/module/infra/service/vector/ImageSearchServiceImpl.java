@@ -1,30 +1,37 @@
 package com.lz.module.infra.service.vector;
 
 import cn.hutool.core.date.LocalDateTimeUtil;
+import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.StrUtil;
+import cn.hutool.http.HttpRequest;
+import cn.hutool.http.HttpUtil;
+import com.lz.framework.common.exception.ErrorCode;
+import com.lz.framework.common.exception.util.ServiceExceptionUtil;
 import com.lz.framework.common.pojo.PageResult;
 import com.lz.framework.vector.core.milvus.MilvusService;
 import com.lz.framework.vector.core.pojo.QueryCondition;
 import com.lz.framework.vector.core.pojo.QueryResult;
 import com.lz.framework.vector.core.pojo.SearchResult;
 import com.lz.framework.vector.core.vector.ImageIndexService;
+import com.lz.module.infra.controller.admin.file.vo.file.FileUploadRespVO;
+import com.lz.module.infra.controller.admin.vector.vo.BatchUploadRespVO;
 import com.lz.module.infra.controller.admin.vector.vo.UploadRespVO;
 import com.lz.module.infra.controller.admin.vector.vo.VectorImagePageReqVO;
 import com.lz.module.infra.controller.admin.vector.vo.VectorImageRespVO;
+import com.lz.module.infra.enums.ErrorCodeConstants;
 import com.lz.module.infra.service.file.FileService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+
+import static com.lz.framework.vector.core.vector.ImageIndexService.IMG_EXT;
+
 
 /**
  * 以图搜图
@@ -64,6 +71,252 @@ public class ImageSearchServiceImpl implements ImageSearchService {
     }
 
     @Override
+    public BatchUploadRespVO batchUpload(List<MultipartFile> files, String moduleType) throws Exception {
+        BatchUploadRespVO.Builder resp = BatchUploadRespVO.builder()
+                .total(files == null ? 0 : files.size());
+        if (CollectionUtils.isEmpty(files)) {
+            return resp.build();
+        }
+        // 一次性查所有原始文件名是否已存在 infra_file，避免逐文件 SELECT
+        List<String> names = new ArrayList<>(files.size());
+        for (MultipartFile f : files) {
+            names.add(f.getOriginalFilename());
+        }
+        Set<String> existing = fileService.getExistingFileNames(names);
+
+        // 逐文件：命中跳过，未命中走落盘 + 索引；单条失败不影响其他
+        for (MultipartFile file : files) {
+            String source = file.getOriginalFilename();
+            if (file.isEmpty()) {
+                resp.failed(BatchUploadRespVO.FailedItem.of(source,
+                        resolveI18nMessage(ErrorCodeConstants.VECTOR_IMAGE_FILE_EMPTY)));
+                continue;
+            }
+            if (existing.contains(source)) {
+                resp.skipped(BatchUploadRespVO.SkippedItem.of(source, null));
+                continue;
+            }
+            Long fileId = null;
+            try {
+                byte[] content = file.getBytes();
+                // 先写文件日志：拿到 fileId 和真 url，再用 url 索引 → Milvus.imagePath 才是可访问的 URL
+                FileUploadRespVO uploaded = fileService.createFile(content, source,
+                        null, file.getContentType(), moduleType);
+                fileId = uploaded.getId();
+                UploadRespVO indexed = uploadImage(uploaded.getUrl(), content, uploaded.getId());
+                resp.inserted(indexed);
+            } catch (Exception e) {
+                // 写向量失败 → 回滚日志（删 infra_file 行 + 文件存储），避免孤儿日志
+                if (fileId != null) {
+                    try { fileService.deleteFile(fileId); } catch (Exception ignore) {}
+                }
+                String msg = e.getMessage() == null ? "" : e.getMessage();
+                ErrorCode code = msg.contains("读取失败") || msg.contains("extract")
+                        ? ErrorCodeConstants.VECTOR_IMAGE_FEATURE_EXTRACT_FAILED
+                        : ErrorCodeConstants.VECTOR_IMAGE_FILE_PROCESS_FAILED;
+                resp.failed(BatchUploadRespVO.FailedItem.of(source,
+                        resolveI18nMessage(code, msg)));
+                log.warn("[batchUpload] 处理失败, source={}, err={}", source, msg);
+            }
+        }
+        return resp.build();
+    }
+
+    @Override
+    public BatchUploadRespVO uploadImagesByUrls(List<String> urls) throws Exception {
+        BatchUploadRespVO.Builder resp = BatchUploadRespVO.builder()
+                .total(urls == null ? 0 : urls.size());
+        if (CollectionUtils.isEmpty(urls)) {
+            return resp.build();
+        }
+        // 一次性查 URL 末段文件名是否已存在 infra_file
+        List<String> fileNames = new ArrayList<>(urls.size());
+        for (String url : urls) {
+            fileNames.add(extractFileName(url));
+        }
+        Set<String> existing = fileService.getExistingFileNames(fileNames);
+
+        for (String url : urls) {
+            if (StrUtil.isBlank(url)) {
+                resp.failed(BatchUploadRespVO.FailedItem.of(url,
+                        resolveI18nMessage(ErrorCodeConstants.VECTOR_IMAGE_DIR_EMPTY)));
+                continue;
+            }
+            String fileName = extractFileName(url);
+            if (existing.contains(fileName)) {
+                resp.skipped(BatchUploadRespVO.SkippedItem.of(url, null));
+                continue;
+            }
+            byte[] content;
+            try {
+                content = HttpRequest.get(url).timeout(30000).execute().bodyBytes();
+            } catch (Exception e) {
+                resp.failed(BatchUploadRespVO.FailedItem.of(url,
+                        resolveI18nMessage(ErrorCodeConstants.VECTOR_IMAGE_URL_DOWNLOAD_FAILED, e.getMessage())));
+                continue;
+            }
+            Long fileId = null;
+            try {
+                FileUploadRespVO uploaded = fileService.createFile(content, fileName,
+                        null, guessContentType(fileName), "infra");
+                fileId = uploaded.getId();
+                UploadRespVO indexed = uploadImage(uploaded.getUrl(), content, uploaded.getId());
+                resp.inserted(indexed);
+            } catch (Exception e) {
+                if (fileId != null) {
+                    try { fileService.deleteFile(fileId); } catch (Exception ignore) {}
+                }
+                String msg = e.getMessage() == null ? "" : e.getMessage();
+                ErrorCode code = msg.contains("读取失败") || msg.contains("extract")
+                        ? ErrorCodeConstants.VECTOR_IMAGE_FEATURE_EXTRACT_FAILED
+                        : ErrorCodeConstants.VECTOR_IMAGE_FILE_PROCESS_FAILED;
+                resp.failed(BatchUploadRespVO.FailedItem.of(url,
+                        resolveI18nMessage(code, msg)));
+                log.warn("[uploadImagesByUrls] 处理失败, url={}, err={}", url, msg);
+            }
+        }
+        return resp.build();
+    }
+
+    @Override
+    public BatchUploadRespVO importFromDirectory(String dir, boolean recursive) {
+        if (StrUtil.isBlank(dir)) {
+            return BatchUploadRespVO.builder()
+                    .total(0)
+                    .failed(BatchUploadRespVO.FailedItem.of(dir,
+                            resolveI18nMessage(ErrorCodeConstants.VECTOR_IMAGE_DIR_EMPTY)))
+                    .build();
+        }
+        File root = new File(dir);
+        if (!root.exists() || !root.isDirectory()) {
+            throw ServiceExceptionUtil.exception(ErrorCodeConstants.VECTOR_IMAGE_DIR_NOT_EXISTS, dir);
+        }
+        // 自己扫目录（不走 framework 的 importFromDirectory：那个版本不查 infra_file，按 name 重复入库）
+        List<File> files;
+        try {
+            files = scanDir(root, recursive);
+        } catch (Exception e) {
+            throw ServiceExceptionUtil.exception(ErrorCodeConstants.VECTOR_IMAGE_DIR_SCAN_FAILED, e.getMessage());
+        }
+        BatchUploadRespVO.Builder resp = BatchUploadRespVO.builder().total(files.size());
+        int failedCount = 0;
+        if (files.isEmpty()) {
+            return resp.build();
+        }
+        // 一次性按 name 查 infra_file
+        List<String> names = new ArrayList<>(files.size());
+        for (File f : files) {
+            names.add(f.getName());
+        }
+        Set<String> existing = fileService.getExistingFileNames(names);
+
+        for (File f : files) {
+            String name = f.getName();
+            if (f.length() == 0) {
+                resp.failed(BatchUploadRespVO.FailedItem.of(name,
+                        resolveI18nMessage(ErrorCodeConstants.VECTOR_IMAGE_FILE_EMPTY)));
+                failedCount++;
+                continue;
+            }
+            if (existing.contains(name)) {
+                resp.skipped(BatchUploadRespVO.SkippedItem.of(name, null));
+                continue;
+            }
+            Long fileId = null;
+            try {
+                byte[] content = FileUtil.readBytes(f);
+                FileUploadRespVO uploaded = fileService.createFile(content, name,
+                        null, guessContentType(name), "infra");
+                fileId = uploaded.getId();
+                UploadRespVO indexed = uploadImage(uploaded.getUrl(), content, uploaded.getId());
+                resp.inserted(indexed);
+            } catch (Exception e) {
+                if (fileId != null) {
+                    try { fileService.deleteFile(fileId); } catch (Exception ignore) {}
+                }
+                String msg = e.getMessage() == null ? "" : e.getMessage();
+                ErrorCode code = msg.contains("读取失败") || msg.contains("extract")
+                        ? ErrorCodeConstants.VECTOR_IMAGE_FEATURE_EXTRACT_FAILED
+                        : ErrorCodeConstants.VECTOR_IMAGE_FILE_PROCESS_FAILED;
+                resp.failed(BatchUploadRespVO.FailedItem.of(name,
+                        resolveI18nMessage(code, msg)));
+                failedCount++;
+                log.warn("[importFromDirectory] 处理失败, name={}, err={}", name, msg);
+            }
+        }
+        int insertedCount = files.size() - existing.size() - failedCount;
+        log.info("[importFromDirectory] 完成 total={}, scanned={}, skipped={}, failed={}, inserted={}",
+                files.size(), files.size(), existing.size(), failedCount, insertedCount);
+        return resp.build();
+    }
+
+    /**
+     * 递归或非递归扫描目录，仅保留图片后缀。
+     */
+    private static List<File> scanDir(File root, boolean recursive) {
+        List<File> out = new ArrayList<>();
+        File[] children = root.listFiles();
+        if (children == null) {
+            return out;
+        }
+        for (File c : children) {
+            if (c.isDirectory()) {
+                if (recursive) {
+                    out.addAll(scanDir(c, true));
+                }
+                continue;
+            }
+            if (!c.isFile()) {
+                continue;
+            }
+            String ext = FileUtil.extName(c).toLowerCase();
+            if (IMG_EXT.contains(ext)) {
+                out.add(c);
+            }
+        }
+        return out;
+    }
+
+    /**
+     * 把 ErrorCode 通过当前请求的 Accept-Language 解析成 message 后再塞进 resp。
+     * 用项目自带的 ServiceException.message 通道，确保翻译口径与业务异常一致。
+     */
+    private static String resolveI18nMessage(ErrorCode errorCode, Object... params) {
+        return ServiceExceptionUtil.exception(errorCode, params).getMessage();
+    }
+
+    /**
+     * 从 URL 末段取文件名（去掉 query / hash）。失败返回 null。
+     */
+    private static String extractFileName(String url) {
+        if (StrUtil.isBlank(url)) {
+            return null;
+        }
+        String path = url;
+        int q = path.indexOf('?');
+        if (q >= 0) path = path.substring(0, q);
+        int h = path.indexOf('#');
+        if (h >= 0) path = path.substring(0, h);
+        int slash = path.lastIndexOf('/');
+        String name = slash >= 0 ? path.substring(slash + 1) : path;
+        return StrUtil.isBlank(name) ? null : name;
+    }
+
+    /**
+     * 按文件名猜 Content-Type（仅图片）。简化处理，未识别走 application/octet-stream。
+     */
+    private static String guessContentType(String name) {
+        if (name == null) return "application/octet-stream";
+        String lower = name.toLowerCase();
+        if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "image/jpeg";
+        if (lower.endsWith(".png")) return "image/png";
+        if (lower.endsWith(".webp")) return "image/webp";
+        if (lower.endsWith(".bmp")) return "image/bmp";
+        if (lower.endsWith(".gif")) return "image/gif";
+        return "application/octet-stream";
+    }
+
+    @Override
     public PageResult<VectorImageRespVO> getImagePage(VectorImagePageReqVO pageReqVO) {
         // 1. 组装类型化查询条件（仅白名单字段：id / image_path / create_time / file_id / tenant_id）
         QueryCondition.Builder builder = QueryCondition.builder();
@@ -100,18 +353,31 @@ public class ImageSearchServiceImpl implements ImageSearchService {
             cond = QueryCondition.builder().gt("create_time", 0L).build();
         }
 
-        // 3. Milvus 的 limit 由 pageSize 决定；分页 = 全量拉一批然后在内存里切片
-        //    （Milvus 不支持 offset，详见 MilvusService.queryByCondition）
+        // 3. Milvus 的 v1 SDK 不支持 offset（在 SDK 2.4.5 上 QueryParam 没有 withOffset），
+        //    这里采用"条件全量拉取 → 内存 sort + slice"的假分页：
+        //      - list.size() 即"过滤后真实总数" total；
+        //      - 内存按 create_time desc 排序后做 [offset, offset+pageSize) 切片。
+        //    优点：total 与 data 走同一 expr，天然一致，不会出现"全集 21 条 + 过滤后剩 3 条"，
+        //          但 total 仍返回 21 这种错误。
+        //    缺点：单次 query 把当前条件下的全集都拉回内存；大数据集需要靠 Milvus 数据分片
+        //          或迁移到 MilvusClientV2 后再上真分页。
         int pageNo = Math.max(1, pageReqVO.getPageNo());
         int pageSize = pageReqVO.getPageSize() == null || pageReqVO.getPageSize() <= 0
                 ? 10 : pageReqVO.getPageSize();
         long offset = (long) (pageNo - 1) * pageSize;
-        long fetchLimit = offset + pageSize;
 
-        List<QueryResult> all = milvusService.queryByCondition(cond, false, (int) Math.min(fetchLimit, 1000L));
+        // 走同一 expr 一次拉全集；list.size() 即过滤后的真实总数。
+        // 一次性取全集（拉不动就截断）。limit 上限用 10_000 防 OOM，
+        // 如果真实过滤后总数超过 10_000（实际场景极少见），需要切到分批累计或升级 SDK。
+        final int HARD_LIMIT = 10_000;
+        List<QueryResult> all = milvusService.queryByCondition(cond, false, HARD_LIMIT);
         if (all.isEmpty()) {
             return new PageResult<>(Collections.emptyList(), 0L);
         }
+
+        // 【修 bug】之前 total = all.size()，但 all 已经按 fetchLimit(=offset+pageSize) 截断，
+        // 导致 21 条 + pageSize=20 → total=20。现在 all 是条件全集，size 就是真实过滤后总数。
+        long total = all.size();
 
         // 4. 按 create_time 倒序，再按 id 升序排序，保证分页稳定
         all.sort((a, b) -> {
@@ -121,9 +387,11 @@ public class ImageSearchServiceImpl implements ImageSearchService {
             return String.valueOf(a.getId()).compareTo(String.valueOf(b.getId()));
         });
 
-        // 5. 切片
-        long total = all.size();
-        int fromIdx = (int) Math.min(offset, all.size());
+        // 5. 切片（offset 越界时返回空 list 而不是抛异常）
+        if (offset >= all.size()) {
+            return new PageResult<>(Collections.emptyList(), total);
+        }
+        int fromIdx = (int) offset;
         int toIdx = (int) Math.min(fromIdx + pageSize, all.size());
         List<QueryResult> pageList = all.subList(fromIdx, toIdx);
 
@@ -271,17 +539,17 @@ public class ImageSearchServiceImpl implements ImageSearchService {
     @Override
     public List<SearchResult> searchById(String id, int topK) throws Exception {
         if (StrUtil.isEmpty(id)) {
-            throw new IllegalArgumentException("图片 id 不能为空");
+            throw ServiceExceptionUtil.exception(ErrorCodeConstants.VECTOR_IMAGE_NOT_EXISTS);
         }
         // 先拿完整记录（含 vector），再以图搜图
         List<com.lz.framework.vector.core.pojo.VectorRecord> records =
                 milvusService.queryByIds(Collections.singletonList(id));
         if (records.isEmpty() || records.get(0) == null) {
-            throw new IllegalArgumentException("图片 id 不存在: " + id);
+            throw ServiceExceptionUtil.exception(ErrorCodeConstants.VECTOR_IMAGE_NOT_EXISTS, id);
         }
         float[] vec = records.get(0).getVector();
         if (vec == null || vec.length == 0) {
-            throw new IllegalStateException("图片向量为空，id=" + id);
+            throw ServiceExceptionUtil.exception(ErrorCodeConstants.VECTOR_IMAGE_VECTOR_EMPTY, id);
         }
         return milvusService.searchByVector(vec, topK);
     }

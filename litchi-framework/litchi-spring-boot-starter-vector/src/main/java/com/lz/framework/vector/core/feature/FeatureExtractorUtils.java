@@ -119,7 +119,7 @@ final class FeatureExtractorUtils {
             // 还要兼容"pool < CPU" 的情况（少数高性能场景，每个 session 多核）
             // 可以使用多个线程，因为只是查询一张图
             intraOp = Math.max(scaleCount * 2, idealIntra);
-            log.info("[{} 启动] batch-mode=false → IntraOp={}（cpuCores={}，pool={}，",
+            log.info("[{} 启动] batch-mode=false → IntraOp={}（cpuCores={}，pool={}）",
                     modelTag, intraOp, cpuCores, sessionPoolSize);
         }
         try {

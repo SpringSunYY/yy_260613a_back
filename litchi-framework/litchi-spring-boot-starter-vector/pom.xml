@@ -68,5 +68,16 @@
                 </exclusion>
             </exclusions>
         </dependency>
+
+        <!--
+          WebP 解码：JDK 内置 javax.imageio 不识别 webp，会让 ImageIO.read(...) 返回 null，
+          触发 SigLIP/DINO/CLIP 三个 extractor 抛"图片读取失败"。
+          加 webp-imageio 后通过 SPI 自动注册一个 WEBP ImageReader 到 ImageIO，
+          extractor 零改动就支持 webp。
+        -->
+        <dependency>
+            <groupId>org.sejda.imageio</groupId>
+            <artifactId>webp-imageio</artifactId>
+        </dependency>
     </dependencies>
 </project>

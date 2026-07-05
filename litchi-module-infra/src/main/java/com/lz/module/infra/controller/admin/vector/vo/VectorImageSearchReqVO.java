@@ -1,8 +1,8 @@
 package com.lz.module.infra.controller.admin.vector.vo;
 
+import com.lz.framework.common.validation.i18n.I18nMax;
+import com.lz.framework.common.validation.i18n.I18nMin;
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
 import lombok.Data;
 
 /**
@@ -18,8 +18,8 @@ import lombok.Data;
 public class VectorImageSearchReqVO {
 
     @Schema(description = "Top K 返回条数", requiredMode = Schema.RequiredMode.REQUIRED, example = "10")
-    @Min(value = 1, message = "topK 必须大于 0")
-    @Max(value = 1000, message = "topK 不能超过 1000")
+    @I18nMin(i18nKey = "infra.vectorImage.back.topK.min", value = 1, message = "topK 必须大于 0")
+    @I18nMax(i18nKey = "infra.vectorImage.back.topK.max", value = 1000, message = "topK 不能超过 1000")
     private Integer topK = 10;
 
 }

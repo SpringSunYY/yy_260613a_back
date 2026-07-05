@@ -78,7 +78,7 @@ public class ImageIndexService {
     /** 上传目录，与 FileStorageService 的 UPLOAD_DIR 保持一致 */
     private static final String UPLOAD_DIR = "images";
 
-    private static final Set<String> IMG_EXT = Set.of("jpg", "jpeg", "png", "webp", "bmp", "gif");
+    public static final Set<String> IMG_EXT = Set.of("jpg", "jpeg", "png", "webp", "bmp", "gif");
 
     // ==================== 索引 =====================
     public String index(String fileUrl, byte[] content) throws Exception {

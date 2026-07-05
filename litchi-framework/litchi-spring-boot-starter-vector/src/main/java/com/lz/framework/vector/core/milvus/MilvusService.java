@@ -773,8 +773,13 @@ public class MilvusService {
             result.setId(score.getStrID());
             float rawScore = score.getScore();
             result.setScore(rawScore);
-            // COSINE ∈ [-1, 1] → 0~100%；归一化：(score + 1) / 2 ∈ [0, 1]
-            float similarity = Math.clamp((rawScore + 1f) / 2f, 0f, 1f) * 100f;
+            // milvus-java 2.4.x 的 COSINE 距离返回的就是"余弦相似度"，范围 [0, 1]：
+            //  - 1.0  = 完全相同方向
+            //  - 0.0  = 完全正交
+            //  不会出现负数（即使两个向量反向，cosine 也是被 SDK 截到 [0, 1]）
+            // 直接乘 100 当作相似度百分比即可，不需要再做 (score + 1) / 2 这种"[-1,1]→[0,1]"的归一化——
+            // 否则会把 0.94 误显示成 97%、0.80 误显示成 90%，让用户觉得"分数对不上"。
+            float similarity = Math.clamp(rawScore, 0f, 1f) * 100f;
             result.setSimilarity(String.format("%.2f%%", similarity));
             Object imagePath = score.get(IMAGE_PATH_FIELD);
             if (imagePath != null) result.setImagePath(imagePath.toString());
@@ -1127,14 +1132,47 @@ public class MilvusService {
     }
 
     /**
-     * 获取集合信息
+     * 获取集合信息（含行数）
+     *
+     * <p>行数从 {@link #queryRowCount()} 拿，与 {@link #getCollectionStats(int)} 共享同一份逻辑。
+     * 行数查询失败时不抛错，而是兜底返回 0L——这样 info 接口的契约（"集合存在 + 维度 + 名"）
+     * 不会因为行数 RPC 抖动而被拖垮。
      */
     public Map<String, Object> getCollectionInfo() {
         Map<String, Object> info = new HashMap<>();
         info.put("collectionName", collectionName);
         info.put("dimension", featureExtractor().getFeatureDim());
         info.put("exists", collectionExists());
+        info.put("rowCount", queryRowCount());
         return info;
+    }
+
+    /**
+     * 获取集合行数（{@code row_count} 统计）。失败时返回 0L，不抛错。
+     *
+     * <p>这里不取 partition，因为 {@code getCollectionStatistics} 返回的是整个集合的行数
+     * （partition 模式下同一 collection 各 partition 之和）；调用方按需在业务层做 partition 过滤。
+     */
+    private long queryRowCount() {
+        try {
+            R<io.milvus.grpc.GetCollectionStatisticsResponse> stats = milvusClient().getCollectionStatistics(
+                    GetCollectionStatisticsParam.newBuilder()
+                            .withCollectionName(collectionName)
+                            .build()
+            );
+            if (stats.getStatus() != R.Status.Success.getCode()) {
+                log.warn("[queryRowCount] 失败: {}", stats.getMessage());
+                return 0L;
+            }
+            for (KeyValuePair kv : stats.getData().getStatsList()) {
+                if ("row_count".equals(kv.getKey())) {
+                    return Long.parseLong(kv.getValue());
+                }
+            }
+        } catch (Exception e) {
+            log.warn("[queryRowCount] 异常: {}", e.getMessage());
+        }
+        return 0L;
     }
 
     /**
@@ -1210,25 +1248,8 @@ public class MilvusService {
             result.put("samples", Collections.emptyList());
         }
 
-        // 行数：尝试拿统计
-        try {
-            R<io.milvus.grpc.GetCollectionStatisticsResponse> stats = milvusClient().getCollectionStatistics(
-                    GetCollectionStatisticsParam.newBuilder()
-                            .withCollectionName(collectionName)
-                            .build()
-            );
-            if (stats.getStatus() == R.Status.Success.getCode()) {
-                for (KeyValuePair kv : stats.getData().getStatsList()) {
-                    if ("row_count".equals(kv.getKey())) {
-                        rowCount = Long.parseLong(kv.getValue());
-                        break;
-                    }
-                }
-            }
-        } catch (Exception e) {
-            log.warn("Failed to fetch row count: {}", e.getMessage());
-        }
-        result.put("rowCount", rowCount);
+        // 行数：复用 queryRowCount（统一语义：失败兜底 0L）
+        result.put("rowCount", queryRowCount());
         return result;
     }
 

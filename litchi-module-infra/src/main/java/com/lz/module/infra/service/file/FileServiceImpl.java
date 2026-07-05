@@ -24,7 +24,7 @@ import lombok.SneakyThrows;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.List;
+import java.util.*;
 
 import static com.lz.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static com.lz.module.infra.enums.ErrorCodeConstants.*;
@@ -288,7 +288,44 @@ public class FileServiceImpl implements FileService {
         );
     }
 
+    /**
+     * 大多数数据库对 SQL IN 列表的上限在 1000。批量查的 IN 一次不超过这个数。
+     */
+    int BATCH_IN_LIMIT = 1000;
+
     @Override
+    public Set<String> getExistingFileNames(Collection<String> fileNames) {
+        if (fileNames == null || fileNames.isEmpty()) {
+            return Collections.emptySet();
+        }
+        // 去空 + 去重，避免 IN 列表中出现 NULL
+        Set<String> distinct = new LinkedHashSet<>();
+        for (String n : fileNames) {
+            if (n != null && !n.isEmpty()) {
+                distinct.add(n);
+            }
+        }
+        if (distinct.isEmpty()) {
+            return Collections.emptySet();
+        }
+        Set<String> existed = new HashSet<>();
+        List<String> snapshot = new ArrayList<>(distinct);
+        for (int from = 0; from < snapshot.size(); from += BATCH_IN_LIMIT) {
+            int to = Math.min(from + BATCH_IN_LIMIT, snapshot.size());
+            List<String> chunk = snapshot.subList(from, to);
+            List<FileDO> hits = fileMapper.selectList(
+                    new com.lz.framework.mybatis.core.query.LambdaQueryWrapperX<FileDO>()
+                            .in(FileDO::getName, chunk)
+                            .select(FileDO::getName));
+            for (FileDO f : hits) {
+                if (f.getName() != null) {
+                    existed.add(f.getName());
+                }
+            }
+        }
+        return existed;
+    }
+
     public FileDO getFileByFileName(String originalFilename) {
         return fileMapper.selectOne(FileDO::getName, originalFilename);
     }

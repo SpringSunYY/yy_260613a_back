@@ -118,4 +118,17 @@ public interface FileService {
     FileCountRespVO getFileCount(@Valid FilePageReqVO pageVO);
 
     FileDO getFileByFileName(String originalFilename);
+
+    /**
+     * 一次性查询若干 fileName 在 infra_file 中已存在的子集（避免逐个 SELECT）。
+     *
+     * <p>用于以图搜图批量入口（多文件上传 / URL 批量 / 本地目录导入），先把"待入库文件
+     * 名集合"传给本方法，回 Set 后内存里就能区分需要新建 vs 跳过。
+     *
+     * <p>超过 {@link #BATCH_IN_LIMIT} 会分批 SELECT，避免单条 SQL 的 IN 列表过大。
+     *
+     * @param fileNames 待查询的文件名集合（{@code null} / 空集合返回空集）
+     * @return 已经存在的文件名（小写敏感 — 与 DB 列 {@code infra_file.name} 一致）
+     */
+    java.util.Set<String> getExistingFileNames(java.util.Collection<String> fileNames);
 }

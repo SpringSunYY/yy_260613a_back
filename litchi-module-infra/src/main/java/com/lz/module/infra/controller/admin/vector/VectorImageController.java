@@ -6,7 +6,9 @@ import com.lz.framework.common.pojo.PageResult;
 import com.lz.framework.vector.core.pojo.SearchResult;
 import com.lz.module.infra.controller.admin.file.vo.file.FileUploadReqVO;
 import com.lz.module.infra.controller.admin.file.vo.file.FileUploadRespVO;
+import com.lz.module.infra.controller.admin.vector.vo.BatchUploadRespVO;
 import com.lz.module.infra.controller.admin.vector.vo.UploadRespVO;
+import com.lz.module.infra.controller.admin.vector.vo.UploadUrlsReqVO;
 import com.lz.module.infra.controller.admin.vector.vo.VectorImagePageReqVO;
 import com.lz.module.infra.controller.admin.vector.vo.VectorImageRespVO;
 import com.lz.module.infra.controller.admin.vector.vo.VectorImageSearchReqVO;
@@ -44,7 +46,8 @@ public class VectorImageController {
 
     /**
      * 上传并索引单张图片
-     * <p>走 fileService.createFile 入库到文件存储，写入文件日志，再调 imageSearchService 抽特征 + Milvus 索引。
+     * <p>顺序：先写文件日志（拿到 fileId + 真 url）→ 再索引（写 Milvus，fileId 直接传入）。
+     * <p>回滚：写向量失败 → 把刚写的文件日志删掉，避免孤儿日志（infra_file 行 + 文件存储）。
      */
     @PostMapping("/upload")
     @Operation(summary = "上传并索引单张图片")
@@ -57,9 +60,65 @@ public class VectorImageController {
         if (existing != null) {
             return success(new UploadRespVO());
         }
-        FileUploadRespVO fileUploadRespVO = fileService.createFile(content, file.getOriginalFilename(),
+        // 1) 先写文件日志：拿到 fileId 和真 url
+        FileUploadRespVO uploaded = fileService.createFile(content, file.getOriginalFilename(),
                 uploadReqVO.getDirectory(), file.getContentType(), uploadReqVO.getModuleType());
-        return success(imageSearchService.uploadImage(fileUploadRespVO.getUrl(), content, fileUploadRespVO.getId()));
+        // 2) 再索引：用真 url 写 Milvus.imagePath，保证搜索结果可点开
+        try {
+            return success(imageSearchService.uploadImage(uploaded.getUrl(), content, uploaded.getId()));
+        } catch (Exception e) {
+            // 索引失败 → 回滚日志（删 infra_file 行 + 文件存储）
+            try {
+                fileService.deleteFile(uploaded.getId());
+            } catch (Exception ignore) {
+            }
+            throw e;
+        }
+    }
+
+    /**
+     * 批量上传并索引多张图片。
+     *
+     * <p>逐个按文件名查重（命中即跳过、未命中才落盘 + 建向量），单条失败不影响其他文件。
+     * 用于：管理后台一次拖多张图快速入库；与单图接口相同的去重策略。
+     */
+    @PostMapping("/upload/batch")
+    @Operation(summary = "批量上传并索引图片（同名跳过）")
+    @PreAuthorize("@ss.hasPermission('infra:vectorImage:add')")
+    public CommonResult<BatchUploadRespVO> uploadImages(
+            @RequestParam("files") List<MultipartFile> files,
+            @RequestParam(value = "moduleType", required = false) String moduleType) throws Exception {
+        return success(imageSearchService.batchUpload(files, moduleType));
+    }
+
+    /**
+     * 按 URL 列表索引图片（demo 的 /import 风格的轻量版本）。
+     *
+     * <p>流程：对每个 URL 按末段文件名查 infra_file，命中跳过、未命中下载后落盘 + 建向量。
+     * 单条失败不影响其他 URL。
+     */
+    @PostMapping("/upload/urls")
+    @Operation(summary = "按 URL 列表索引图片（同名跳过）")
+    @PreAuthorize("@ss.hasPermission('infra:vectorImage:add')")
+    public CommonResult<BatchUploadRespVO> uploadImagesByUrls(@Valid @RequestBody UploadUrlsReqVO reqVO) throws Exception {
+        return success(imageSearchService.uploadImagesByUrls(reqVO.getUrls()));
+    }
+
+    /**
+     * 从服务器本地目录导入图片并索引（demo 的 /import 风格）。
+     *
+     * <p>递归（可选）扫描目录下的图片，逐个按文件名查 infra_file，命中跳过、
+     * 未命中走 fileService.createFile + imageIndexService.index。
+     *
+     * <p>注意：路径是 <b>服务器</b> 的本地路径，不是浏览器侧路径。
+     */
+    @PostMapping("/upload/import")
+    @Operation(summary = "从本地目录导入图片并索引（同名跳过）")
+    @PreAuthorize("@ss.hasPermission('infra:vectorImage:add')")
+    public CommonResult<BatchUploadRespVO> importFromDirectory(
+            @RequestParam("dir") String dir,
+            @RequestParam(value = "recursive", defaultValue = "true") boolean recursive) throws Exception {
+        return success(imageSearchService.importFromDirectory(dir, recursive));
     }
 
     /**
@@ -132,6 +191,10 @@ public class VectorImageController {
 
     /**
      * 获得 Milvus 集合信息
+     *
+     * <p>之前 {@link #getCollectionInfo()} 只返回 collectionName / dimension / exists，
+     * 前端要 recordCount 必须再发一次 {@code /stats}（里面要 sampleSize 参数 + 拉样本，浪费流量）。
+     * 这里直接把行数也带回，避免前端二次请求；同时保留 {@link #getCollectionStats} 给"想看样本"的场景用。
      */
     @GetMapping("/info")
     @Operation(summary = "获得 Milvus 集合信息")
@@ -156,7 +219,7 @@ public class VectorImageController {
      * 重置集合（清空数据并重建）
      */
     @DeleteMapping("/reset")
-    @Operation(summary = "重置 Milvus 集合（清空数据并重建）")
+    @Operation(summary = "重置 Milvus 集合")
     @PreAuthorize("@ss.hasPermission('infra:vectorImage:delete')")
     public CommonResult<Boolean> resetCollection() throws Exception {
         imageSearchService.resetCollection();

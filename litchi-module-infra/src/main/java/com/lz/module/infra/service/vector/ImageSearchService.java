@@ -3,9 +3,11 @@ package com.lz.module.infra.service.vector;
 import com.lz.framework.common.pojo.PageResult;
 import com.lz.framework.vector.core.pojo.QueryResult;
 import com.lz.framework.vector.core.pojo.SearchResult;
+import com.lz.module.infra.controller.admin.vector.vo.BatchUploadRespVO;
 import com.lz.module.infra.controller.admin.vector.vo.UploadRespVO;
 import com.lz.module.infra.controller.admin.vector.vo.VectorImagePageReqVO;
 import com.lz.module.infra.controller.admin.vector.vo.VectorImageRespVO;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;
 import java.util.List;
@@ -34,6 +36,49 @@ public interface ImageSearchService {
      * @param fileId  关联的 {@code infra_file.id}；可为 {@code null}
      */
     UploadRespVO uploadImage(String fileUrl, byte[] content, Long fileId) throws Exception;
+
+    /**
+     * 批量上传图片。
+     *
+     * <p>逐个按文件名查 {@code infra_file}，已存在则跳过、不构建向量；不存在的走
+     * {@link #uploadImage(String, byte[], Long)}。单个文件失败不影响其他文件。
+     *
+     * @param files   上传的文件列表
+     * @param moduleType 模块类型（透传给 fileService.createFile）
+     * @return 批量结果：成功 / 跳过 / 失败明细
+     */
+    BatchUploadRespVO batchUpload(List<MultipartFile> files, String moduleType) throws Exception;
+
+    /**
+     * 按 URL 列表构建向量（demo 的 /import 风格的轻量版本）。
+     *
+     * <p>流程：对每个 URL
+     * <ol>
+     *   <li>用 URL 末段当文件名查 {@code infra_file}，命中则跳过（同时把这条 URL 当作已存在）</li>
+     *   <li>未命中则下载字节 → {@code fileService.createFile} → {@link #uploadImage(String, byte[], Long)}</li>
+     * </ol>
+     * 单条失败不影响其他 URL。
+     *
+     * @param urls 图片 URL 列表（http(s) 或可访问的相对路径）
+     * @return 批量结果
+     */
+    BatchUploadRespVO uploadImagesByUrls(List<String> urls) throws Exception;
+
+    /**
+     * 从本地目录导入图片并构建向量（demo 的 /import 风格）。
+     *
+     * <p>递归（可选）扫描目录下的图片，对每个文件：
+     * <ol>
+     *   <li>用文件名查 {@code infra_file}，命中则跳过</li>
+     *   <li>未命中则读字节 → {@code fileService.createFile} → {@link #uploadImage(String, byte[], Long)}</li>
+     * </ol>
+     * 单个文件失败不影响其他文件。
+     *
+     * @param dir       本地目录（绝对路径或相对路径）
+     * @param recursive 是否递归子目录
+     * @return 批量结果
+     */
+    BatchUploadRespVO importFromDirectory(String dir, boolean recursive) throws Exception;
 
     /**
      * 获得图片分页（基于 Milvus 条件查询，offset/limit 实现分页）
