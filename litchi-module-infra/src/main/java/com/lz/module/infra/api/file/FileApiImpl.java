@@ -2,8 +2,6 @@ package com.lz.module.infra.api.file;
 
 import cn.hutool.core.util.StrUtil;
 import com.lz.framework.common.util.collection.ArrayUtils;
-import com.lz.module.infra.dal.dataobject.file.FileConfigDO;
-import com.lz.module.infra.service.file.FileConfigService;
 import com.lz.module.infra.service.file.FileService;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
@@ -25,7 +23,7 @@ public class FileApiImpl implements FileApi {
 
     @Override
     public String createFile(byte[] content, String name, String directory, String type, String moduleType) {
-        return fileService.createFile(content, name, directory, type, moduleType);
+        return fileService.createFile(content, name, directory, type, moduleType).getUrl();
     }
 
     @Override

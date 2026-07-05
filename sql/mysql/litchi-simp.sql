@@ -8079,7 +8079,7 @@ CREATE TABLE `infra_i18n_key`  (
   `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '更新时间',
   `deleted` bit(1) NOT NULL DEFAULT b'0' COMMENT '是否删除',
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 25781 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '国际化键名' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 25298 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '国际化键名' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of infra_i18n_key
@@ -8795,6 +8795,12 @@ INSERT INTO `infra_i18n_key` VALUES (25136, '站内信', 'system.notify.message.
 INSERT INTO `infra_i18n_key` VALUES (25144, '我的站内信', 'system.notify.my.menu', 0, 'system', 6, 6, 'ai auto generate', '0', '2026-07-02 17:08:41', '0', '2026-07-02 17:08:41', b'0');
 INSERT INTO `infra_i18n_key` VALUES (25167, '站内信模板', 'system.notify.template.menu', 0, 'system', 6, 6, 'ai auto generate', '0', '2026-07-02 17:08:41', '0', '2026-07-02 17:08:41', b'0');
 INSERT INTO `infra_i18n_key` VALUES (25291, '短信渠道', 'system.sms.channel.menu', 0, 'system', 6, 6, 'ai auto generate', '0', '2026-07-02 17:08:44', '0', '2026-07-02 17:08:44', b'0');
+INSERT INTO `infra_i18n_key` VALUES (25292, '以图搜图', 'infra.vectorImage.menu', 0, 'infra', 6, 6, 'ai auto generate', '1', '2026-07-05 19:09:00', '1', '2026-07-05 19:09:00', b'0');
+INSERT INTO `infra_i18n_key` VALUES (25293, '图片向量', 'infra.vectorImage.image.menu', 0, 'infra', 6, 6, 'ai auto generate', '1', '2026-07-05 19:09:00', '1', '2026-07-05 19:09:00', b'0');
+INSERT INTO `infra_i18n_key` VALUES (25294, '查询', 'infra.vectorImage.action.query', 0, 'infra', 6, 6, 'ai auto generate', '1', '2026-07-05 19:09:00', '1', '2026-07-05 19:09:00', b'0');
+INSERT INTO `infra_i18n_key` VALUES (25295, '新增', 'infra.vectorImage.action.add', 0, 'infra', 6, 6, 'ai auto generate', '1', '2026-07-05 19:09:00', '1', '2026-07-05 19:09:00', b'0');
+INSERT INTO `infra_i18n_key` VALUES (25296, '删除', 'infra.vectorImage.action.delete', 0, 'infra', 6, 6, 'ai auto generate', '1', '2026-07-05 19:09:00', '1', '2026-07-05 19:09:00', b'0');
+INSERT INTO `infra_i18n_key` VALUES (25297, '以图搜图', 'infra.vectorImage.action.search', 0, 'infra', 6, 6, 'ai auto generate', '1', '2026-07-05 19:09:00', '1', '2026-07-05 19:09:00', b'0');
 
 -- ----------------------------
 -- Table structure for infra_i18n_locale
@@ -8852,7 +8858,7 @@ CREATE TABLE `infra_i18n_message`  (
   INDEX `infra_i18n_message_message_key_index`(`message_key` ASC) USING BTREE,
   INDEX `infra_i18n_message_locale_index`(`locale` ASC) USING BTREE,
   INDEX `infra_i18n_message_locale_target_index`(`locale_target` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 51563 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '国际化信息' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 51597 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '国际化信息' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of infra_i18n_message
@@ -10278,6 +10284,18 @@ INSERT INTO `infra_i18n_message` VALUES (50335, '站内信模板', 'system.notif
 INSERT INTO `infra_i18n_message` VALUES (50336, '站内信模板', 'system.notify.template.menu', 'zh-CN', 2, 0, 'system', 6, '站内信模板', 'ai auto generate', '0', '2026-07-02 17:08:41', '0', '2026-07-02 17:08:41', b'0');
 INSERT INTO `infra_i18n_message` VALUES (50583, '短信渠道', 'system.sms.channel.menu', 'en-US', 2, 0, 'system', 6, 'sms channel', 'ai auto generate', '0', '2026-07-02 17:08:44', '0', '2026-07-02 17:08:44', b'0');
 INSERT INTO `infra_i18n_message` VALUES (50584, '短信渠道', 'system.sms.channel.menu', 'zh-CN', 2, 0, 'system', 6, '短信渠道', 'ai auto generate', '0', '2026-07-02 17:08:44', '0', '2026-07-02 17:08:44', b'0');
+INSERT INTO `infra_i18n_message` VALUES (50585, '以图搜图', 'infra.vectorImage.menu', 'en-US', 2, 0, 'infra', 6, 'image search', 'ai auto generate', '1', '2026-07-05 19:09:00', '1', '2026-07-05 19:09:00', b'0');
+INSERT INTO `infra_i18n_message` VALUES (50586, '以图搜图', 'infra.vectorImage.menu', 'zh-CN', 2, 0, 'infra', 6, '以图搜图', 'ai auto generate', '1', '2026-07-05 19:09:00', '1', '2026-07-05 19:09:00', b'0');
+INSERT INTO `infra_i18n_message` VALUES (50587, '图片向量', 'infra.vectorImage.image.menu', 'en-US', 2, 0, 'infra', 6, 'image vector', 'ai auto generate', '1', '2026-07-05 19:09:00', '1', '2026-07-05 19:09:00', b'0');
+INSERT INTO `infra_i18n_message` VALUES (50588, '图片向量', 'infra.vectorImage.image.menu', 'zh-CN', 2, 0, 'infra', 6, '图片向量', 'ai auto generate', '1', '2026-07-05 19:09:00', '1', '2026-07-05 19:09:00', b'0');
+INSERT INTO `infra_i18n_message` VALUES (50589, '查询', 'infra.vectorImage.action.query', 'en-US', 2, 0, 'infra', 6, 'query', 'ai auto generate', '1', '2026-07-05 19:09:00', '1', '2026-07-05 19:09:00', b'0');
+INSERT INTO `infra_i18n_message` VALUES (50590, '查询', 'infra.vectorImage.action.query', 'zh-CN', 2, 0, 'infra', 6, '查询', 'ai auto generate', '1', '2026-07-05 19:09:00', '1', '2026-07-05 19:09:00', b'0');
+INSERT INTO `infra_i18n_message` VALUES (50591, '新增', 'infra.vectorImage.action.add', 'en-US', 2, 0, 'infra', 6, 'add', 'ai auto generate', '1', '2026-07-05 19:09:00', '1', '2026-07-05 19:09:00', b'0');
+INSERT INTO `infra_i18n_message` VALUES (50592, '新增', 'infra.vectorImage.action.add', 'zh-CN', 2, 0, 'infra', 6, '新增', 'ai auto generate', '1', '2026-07-05 19:09:00', '1', '2026-07-05 19:09:00', b'0');
+INSERT INTO `infra_i18n_message` VALUES (50593, '删除', 'infra.vectorImage.action.delete', 'en-US', 2, 0, 'infra', 6, 'delete', 'ai auto generate', '1', '2026-07-05 19:09:00', '1', '2026-07-05 19:09:00', b'0');
+INSERT INTO `infra_i18n_message` VALUES (50594, '删除', 'infra.vectorImage.action.delete', 'zh-CN', 2, 0, 'infra', 6, '删除', 'ai auto generate', '1', '2026-07-05 19:09:00', '1', '2026-07-05 19:09:00', b'0');
+INSERT INTO `infra_i18n_message` VALUES (50595, '以图搜图', 'infra.vectorImage.action.search', 'en-US', 2, 0, 'infra', 6, 'search', 'ai auto generate', '1', '2026-07-05 19:09:00', '1', '2026-07-05 19:09:00', b'0');
+INSERT INTO `infra_i18n_message` VALUES (50596, '以图搜图', 'infra.vectorImage.action.search', 'zh-CN', 2, 0, 'infra', 6, '以图搜图', 'ai auto generate', '1', '2026-07-05 19:09:00', '1', '2026-07-05 19:09:00', b'0');
 
 -- ----------------------------
 -- Table structure for infra_job
@@ -11652,7 +11670,7 @@ CREATE TABLE `system_menu`  (
   `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   `deleted` bit(1) NOT NULL DEFAULT b'0' COMMENT '是否删除',
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 5084 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '菜单权限表' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 5090 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '菜单权限表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of system_menu
@@ -12224,6 +12242,12 @@ INSERT INTO `system_menu` VALUES (5080, '国际化信息导入', 'infra.i18nMess
 INSERT INTO `system_menu` VALUES (5081, '后端源码', 'back.code.menu', '', 2, 0, 0, 'https://github.com/SpringSunYY/LZ-litchi', 'carbon:code', NULL, NULL, 0, b'1', b'1', b'1', 'BasicLayout', b'0', NULL, '1', '2026-06-08 17:34:23', '1', '2026-06-08 17:41:04', b'0');
 INSERT INTO `system_menu` VALUES (5082, '前端源码', 'front.code.menu', '', 2, 0, 0, 'https://github.com/SpringSunYY/LZ-litchi-ui-admin-vben', 'carbon:ibm-watsonx-code-assistant-for-z-understand', NULL, NULL, 0, b'1', b'1', b'1', 'BasicLayout', b'0', NULL, '1', '2026-06-08 17:40:50', '1', '2026-06-08 17:40:50', b'0');
 INSERT INTO `system_menu` VALUES (5083, '地区信息导入', 'infra.area.action.import', 'infra:area:import', 3, 5, 2083, '', '', '', NULL, 0, b'1', b'1', b'1', 'BasicLayout', b'0', NULL, '', '2026-06-11 19:59:35', '', '2026-06-11 19:59:35', b'0');
+INSERT INTO `system_menu` VALUES (5084, '以图搜图', 'infra.vectorImage.menu', '', 1, 10, 2, 'vector', 'ep:picture', NULL, NULL, 0, b'1', b'1', b'1', 'BasicLayout', b'0', NULL, '1', '2026-07-05 19:09:00', '1', '2026-07-05 19:09:00', b'0');
+INSERT INTO `system_menu` VALUES (5085, '图片向量', 'infra.vectorImage.image.menu', 'infra:vectorImage:query', 2, 1, 5084, 'image', 'ep:picture-filled', 'infra/vector/image/index', 'InfraVectorImage', 0, b'1', b'1', b'1', 'BasicLayout', b'0', NULL, '1', '2026-07-05 19:09:00', '1', '2026-07-05 19:09:00', b'0');
+INSERT INTO `system_menu` VALUES (5086, '查询', 'infra.vectorImage.action.query', 'infra:vectorImage:query', 3, 1, 5085, '', '', '', NULL, 0, b'1', b'1', b'1', 'BasicLayout', b'0', NULL, '1', '2026-07-05 19:09:00', '1', '2026-07-05 19:09:00', b'0');
+INSERT INTO `system_menu` VALUES (5087, '新增', 'infra.vectorImage.action.add', 'infra:vectorImage:add', 3, 2, 5085, '', '', '', NULL, 0, b'1', b'1', b'1', 'BasicLayout', b'0', NULL, '1', '2026-07-05 19:09:00', '1', '2026-07-05 19:09:00', b'0');
+INSERT INTO `system_menu` VALUES (5088, '删除', 'infra.vectorImage.action.delete', 'infra:vectorImage:delete', 3, 3, 5085, '', '', '', NULL, 0, b'1', b'1', b'1', 'BasicLayout', b'0', NULL, '1', '2026-07-05 19:09:00', '1', '2026-07-05 19:09:00', b'0');
+INSERT INTO `system_menu` VALUES (5089, '以图搜图', 'infra.vectorImage.action.search', 'infra:vectorImage:search', 3, 4, 5085, '', '', '', NULL, 0, b'1', b'1', b'1', 'BasicLayout', b'0', NULL, '1', '2026-07-05 19:09:00', '1', '2026-07-05 19:09:00', b'0');
 
 -- ----------------------------
 -- Table structure for system_notice

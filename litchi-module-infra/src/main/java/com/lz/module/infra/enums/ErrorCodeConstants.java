@@ -98,4 +98,7 @@ public interface ErrorCodeConstants {
     ErrorCode AREA_CODE_DUPLICATE = new ErrorCode(1_001_009_005, "infra.area.back.codeDuplicate", "area code already exists");
     ErrorCode AREA_PARENT_IS_CHILD = new ErrorCode(1_001_009_005, "infra.area.back.parentChildError", "cannot set child area as parent");
     ErrorCode AREA_IMPORT_DATA_EMPTY = new ErrorCode(1_001_009_005, "infra.back.import.dataEmpty", "地区信息导入数据不能为空！");
+    // ========== 向量 ==========
+    ErrorCode VECTOR_NOT_EXISTS = new ErrorCode(1_001_010_000, "infra.vector.back.notExists", "向量不存在");
+    ErrorCode VECTOR_FILE_ERROR = new ErrorCode(1_001_010_001, "infra.vector.back.fileError", "向量文件错误");
 }

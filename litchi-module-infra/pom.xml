@@ -109,6 +109,12 @@
             <artifactId>spring-boot-admin-starter-server</artifactId> <!-- 实现 Spring Boot Admin Server 服务端 -->
         </dependency>
 
+        <!-- 向量检索模块（CLIP/DINOv2/SigLIP 特征提取 + Milvus） -->
+        <dependency>
+            <groupId>com.lz.litchi</groupId>
+            <artifactId>litchi-spring-boot-starter-vector</artifactId>
+        </dependency>
+
         <!-- 三方云服务相关 -->
         <dependency>
             <groupId>commons-net</groupId>

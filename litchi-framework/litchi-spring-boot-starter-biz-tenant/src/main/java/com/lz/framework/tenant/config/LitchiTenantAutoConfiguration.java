@@ -17,8 +17,10 @@ import com.lz.framework.tenant.core.security.TenantSecurityWebFilter;
 import com.lz.framework.tenant.core.service.TenantFrameworkService;
 import com.lz.framework.tenant.core.service.TenantFrameworkServiceImpl;
 import com.lz.framework.tenant.core.util.TenantUtils;
+import com.lz.framework.tenant.core.vector.TenantVectorTenantContext;
 import com.lz.framework.tenant.core.web.TenantContextWebFilter;
 import com.lz.framework.tenant.core.web.TenantVisitContextInterceptor;
+import com.lz.framework.vector.core.isolation.VectorTenantContext;
 import com.lz.framework.web.config.WebProperties;
 import com.lz.framework.web.core.handler.GlobalExceptionHandler;
 import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
@@ -177,6 +179,27 @@ public class LitchiTenantAutoConfiguration {
     @Bean
     public TenantJobAspect tenantJobAspect(TenantFrameworkService tenantFrameworkService) {
         return new TenantJobAspect(tenantFrameworkService);
+    }
+
+    // ========== Vector ==========
+
+    /**
+     * biz-tenant 模块对 vector 模块的反向桥接实现（与 redis/job/mq 模式完全一致）：
+     * <ul>
+     *   <li>vector 模块只声明 {@link VectorTenantContext} 接口，pom 不引 biz-tenant</li>
+     *   <li>biz-tenant 模块反向依赖 vector，本 bean 把实现注册到 IoC 容器</li>
+     *   <li>vector 的 {@code ObjectProvider<VectorTenantContext>} 在装配时拿到本 bean，
+     *       决定 Milvus 的 partition / database 多租户隔离</li>
+     * </ul>
+     *
+     * <p>{@code @ConditionalOnClass} 保证 vector 模块在 classpath 时才注册；
+     * 业务方只引 biz-tenant 不引 vector 时，本 bean 被跳过，不会因找不到
+     * {@link VectorTenantContext} 类而炸。
+     */
+    @Bean
+    @ConditionalOnClass(VectorTenantContext.class)
+    public TenantVectorTenantContext tenantVectorTenantContext() {
+        return new TenantVectorTenantContext();
     }
 
     // ========== Redis ==========

@@ -72,7 +72,7 @@ public class FileServiceImpl implements FileService {
 
     @Override
     @SneakyThrows
-    public String createFile(byte[] content, String name, String directory, String type, String moduleType) {
+    public FileUploadRespVO createFile(byte[] content, String name, String directory, String type, String moduleType) {
         // 0. 获取配置并进行文件校验
         FileConfigDO config = fileConfigService.getMasterFileConfig();
         Assert.notNull(config, "文件配置不存在");
@@ -117,12 +117,14 @@ public class FileServiceImpl implements FileService {
         // 4.1 拿到文件类型，只需要文件的.后缀
         String fileType = FileUtil.extName(name);
         // 5. 保存到数据库
-        fileMapper.insert(new FileDO().setConfigKey(client.getConfigKey())
+        FileDO fileDO = new FileDO();
+        fileMapper.insert(fileDO.setConfigKey(client.getConfigKey())
                 .setName(name).setPath(path).setRelativePath(relativePath).setAbsolutePath(absolutePath)
                 .setType(fileType).setSize(content.length).setModuleType(moduleType));
 
         // 6. 根据配置返回路径
-        return buildReturnPath(config, relativePath, absolutePath);
+        String resultUrl = buildReturnPath(config, relativePath, absolutePath);
+        return new FileUploadRespVO(fileDO.getId(), fileDO.getName(), resultUrl);
     }
 
     /**
@@ -284,6 +286,11 @@ public class FileServiceImpl implements FileService {
         return TenantUtils.executeSystemOrTenant(() ->
                 fileMapper.selectFileCount(pageVO)
         );
+    }
+
+    @Override
+    public FileDO getFileByFileName(String originalFilename) {
+        return fileMapper.selectOne(FileDO::getName, originalFilename);
     }
 
 }

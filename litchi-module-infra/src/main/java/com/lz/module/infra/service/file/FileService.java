@@ -33,7 +33,7 @@ public interface FileService {
      * @param moduleType 模块类型，允许空
      * @return 文件访问路径（相对路径或绝对路径）
      */
-    String createFile(@NotEmpty(message = "文件内容不能为空") byte[] content,
+    FileUploadRespVO createFile(@NotEmpty(message = "文件内容不能为空") byte[] content,
                       String name, String directory, String type, String moduleType);
 
     /**
@@ -116,4 +116,6 @@ public interface FileService {
      * @return 文件数量
      */
     FileCountRespVO getFileCount(@Valid FilePageReqVO pageVO);
+
+    FileDO getFileByFileName(String originalFilename);
 }

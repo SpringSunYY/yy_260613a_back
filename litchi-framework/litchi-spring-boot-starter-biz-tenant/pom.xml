@@ -66,6 +66,17 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- 向量模块：与 redis / job / mq 完全相同的反向桥接模式。
+             biz-tenant 反向依赖 vector 模块（vector 自己 pom 不引 biz-tenant），
+             提供基于 TenantContextHolder 的 VectorTenantContext 实现，
+             决定 Milvus 的 partition / database 多租户隔离。
+             设为 optional：仅在业务方同时引 vector 时才需要。 -->
+        <dependency>
+            <groupId>com.lz.litchi</groupId>
+            <artifactId>litchi-spring-boot-starter-vector</artifactId>
+            <optional>true</optional>
+        </dependency>
+
         <!-- Test 测试相关 -->
         <dependency>
             <groupId>com.lz.litchi</groupId>
