@@ -25,7 +25,7 @@ public class TenantVectorTenantContext implements VectorTenantContext {
     /**
      * 返回值语义：
      * <ul>
-     *   <li>{@code @TenantIgnore} → 返回 {@code -1L}（MilvusService 同样识别为 ignore）</li>
+     *   <li>{@code @TenantIgnore} → 返回 {@code null}（MilvusService 同样识别为 ignore）</li>
      *   <li>未启用租户 → 返回 {@code null}（MilvusService 走 0L 哨兵 + _default 分区）</li>
      *   <li>正常请求 → 返回真实租户 ID（MilvusService 走 tnt_{tenantId} 隔离）</li>
      * </ul>
@@ -33,7 +33,7 @@ public class TenantVectorTenantContext implements VectorTenantContext {
     @Override
     public Long currentTenantId() {
         if (TenantContextHolder.isIgnore()) {
-            return -1L;
+            return null;
         }
         return TenantContextHolder.getTenantId();
     }

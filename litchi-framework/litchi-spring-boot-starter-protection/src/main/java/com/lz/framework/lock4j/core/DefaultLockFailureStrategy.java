@@ -15,7 +15,7 @@ public class DefaultLockFailureStrategy implements LockFailureStrategy {
 
     @Override
     public void onLockFailure(String key, Method method, Object[] arguments) {
-        log.debug("[onLockFailure][线程:{} 获取锁失败，key:{} 获取失败:{} ]", Thread.currentThread().getName(), key, arguments);
+        log.error("[onLockFailure][线程:{} 获取锁失败，key:{} 获取失败:{} ]", Thread.currentThread().getName(), key, arguments);
         throw new ServiceException(GlobalErrorCodeConstants.LOCKED);
     }
 }

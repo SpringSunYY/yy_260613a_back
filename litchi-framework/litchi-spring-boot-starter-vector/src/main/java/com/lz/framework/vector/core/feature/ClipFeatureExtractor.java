@@ -700,7 +700,7 @@ public class ClipFeatureExtractor implements FeatureExtractor {
                 float scale = 1.0f / n;
                 for (int i = 0; i < avgLen; i++) avg[i] += emb[i] * scale;
             }
-            log.debug("[CLIP 多尺度并发] scales={} | 总等待 {}ms | 有效 {}/{}",
+            log.error("[CLIP 多尺度并发] scales={} | 总等待 {}ms | 有效 {}/{}",
                     Arrays.toString(scales), System.currentTimeMillis() - t0, validScales, n);
         } catch (Exception e) {
             Thread.currentThread().interrupt();

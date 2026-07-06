@@ -4,15 +4,14 @@ import cn.hutool.core.date.LocalDateTimeUtil;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.http.HttpRequest;
-import cn.hutool.http.HttpUtil;
 import com.lz.framework.common.exception.ErrorCode;
 import com.lz.framework.common.exception.util.ServiceExceptionUtil;
 import com.lz.framework.common.pojo.PageResult;
-import com.lz.framework.vector.core.milvus.MilvusService;
-import com.lz.framework.vector.core.pojo.QueryCondition;
-import com.lz.framework.vector.core.pojo.QueryResult;
-import com.lz.framework.vector.core.pojo.SearchResult;
 import com.lz.framework.vector.core.vector.ImageIndexService;
+import com.lz.framework.vector.pojo.QueryCondition;
+import com.lz.framework.vector.pojo.QueryResult;
+import com.lz.framework.vector.pojo.SearchResult;
+import com.lz.framework.vector.pojo.VectorRecord;
 import com.lz.module.infra.controller.admin.file.vo.file.FileUploadRespVO;
 import com.lz.module.infra.controller.admin.vector.vo.BatchUploadRespVO;
 import com.lz.module.infra.controller.admin.vector.vo.UploadRespVO;
@@ -49,22 +48,13 @@ public class ImageSearchServiceImpl implements ImageSearchService {
     @Resource
     private ImageIndexService imageIndexService;
 
-    @Resource
-    private MilvusService milvusService;
 
     @Resource
     private FileService fileService;
 
     @Override
-    public UploadRespVO uploadImage(String fileUrl, byte[] content) throws Exception {
-        // 与 3 参重载保持单一入口；不传 fileId 表示"目录导入"或"无 infra_file 关联"语义，
-        // 由 MilvusService 的 fileIdOrSentinel 翻译成 0L 哨兵。
-        return uploadImage(fileUrl, content, null);
-    }
-
-    @Override
-    public UploadRespVO uploadImage(String fileUrl, byte[] content, Long fileId) throws Exception {
-        String id = imageIndexService.index(fileUrl, content, fileId);
+    public UploadRespVO uploadImage(String fileUrl, byte[] content, Long fileId, String collection) throws Exception {
+        String id = imageIndexService.index(fileUrl, content, fileId, collection);
         return UploadRespVO.builder()
                 .id(id)
                 .url(fileUrl)
@@ -72,7 +62,7 @@ public class ImageSearchServiceImpl implements ImageSearchService {
     }
 
     @Override
-    public BatchUploadRespVO batchUpload(List<MultipartFile> files, String moduleType) throws Exception {
+    public BatchUploadRespVO batchUpload(List<MultipartFile> files, String moduleType, String collection) throws Exception {
         BatchUploadRespVO.Builder resp = BatchUploadRespVO.builder()
                 .total(files == null ? 0 : files.size());
         if (CollectionUtils.isEmpty(files)) {
@@ -102,14 +92,17 @@ public class ImageSearchServiceImpl implements ImageSearchService {
                 byte[] content = file.getBytes();
                 // 先写文件日志：拿到 fileId 和真 url，再用 url 索引 → Milvus.imagePath 才是可访问的 URL
                 FileUploadRespVO uploaded = fileService.createFile(content, source,
-                        null, file.getContentType(), moduleType);
+                        null, file.getContentType(), moduleType == null ? "infra" : moduleType);
                 fileId = uploaded.getId();
-                UploadRespVO indexed = uploadImage(uploaded.getUrl(), content, uploaded.getId());
+                UploadRespVO indexed = uploadImage(uploaded.getUrl(), content, uploaded.getId(), collection);
                 resp.inserted(indexed);
             } catch (Exception e) {
                 // 写向量失败 → 回滚日志（删 infra_file 行 + 文件存储），避免孤儿日志
                 if (fileId != null) {
-                    try { fileService.deleteFile(fileId); } catch (Exception ignore) {}
+                    try {
+                        fileService.deleteFile(fileId);
+                    } catch (Exception ignore) {
+                    }
                 }
                 String msg = e.getMessage() == null ? "" : e.getMessage();
                 ErrorCode code = msg.contains("读取失败") || msg.contains("extract")
@@ -124,7 +117,7 @@ public class ImageSearchServiceImpl implements ImageSearchService {
     }
 
     @Override
-    public BatchUploadRespVO uploadImagesByUrls(List<String> urls) throws Exception {
+    public BatchUploadRespVO uploadImagesByUrls(List<String> urls, String collection) throws Exception {
         BatchUploadRespVO.Builder resp = BatchUploadRespVO.builder()
                 .total(urls == null ? 0 : urls.size());
         if (CollectionUtils.isEmpty(urls)) {
@@ -161,11 +154,14 @@ public class ImageSearchServiceImpl implements ImageSearchService {
                 FileUploadRespVO uploaded = fileService.createFile(content, fileName,
                         null, guessContentType(fileName), "infra");
                 fileId = uploaded.getId();
-                UploadRespVO indexed = uploadImage(uploaded.getUrl(), content, uploaded.getId());
+                UploadRespVO indexed = uploadImage(uploaded.getUrl(), content, uploaded.getId(), collection);
                 resp.inserted(indexed);
             } catch (Exception e) {
                 if (fileId != null) {
-                    try { fileService.deleteFile(fileId); } catch (Exception ignore) {}
+                    try {
+                        fileService.deleteFile(fileId);
+                    } catch (Exception ignore) {
+                    }
                 }
                 String msg = e.getMessage() == null ? "" : e.getMessage();
                 ErrorCode code = msg.contains("读取失败") || msg.contains("extract")
@@ -180,7 +176,7 @@ public class ImageSearchServiceImpl implements ImageSearchService {
     }
 
     @Override
-    public BatchUploadRespVO importFromDirectory(String dir, boolean recursive) {
+    public BatchUploadRespVO importFromDirectory(String dir, boolean recursive, String collection) {
         if (StrUtil.isBlank(dir)) {
             return BatchUploadRespVO.builder()
                     .total(0)
@@ -204,7 +200,7 @@ public class ImageSearchServiceImpl implements ImageSearchService {
         if (files.isEmpty()) {
             return resp.build();
         }
-        // 用 root 的相对路径拼出“祖先目录_文件名”作为 newName，防止不同子目录下的同名文件被误判重复
+        // 用 root 的相对路径拼出"祖先目录_文件名"作为 newName，防止不同子目录下的同名文件被误判重复
         Path rootPath = root.toPath();
         List<String> newNames = new ArrayList<>(files.size());
         for (File f : files) {
@@ -233,11 +229,14 @@ public class ImageSearchServiceImpl implements ImageSearchService {
                 FileUploadRespVO uploaded = fileService.createFile(content, newName,
                         null, guessContentType(name), "infra");
                 fileId = uploaded.getId();
-                UploadRespVO indexed = uploadImage(uploaded.getUrl(), content, uploaded.getId());
+                UploadRespVO indexed = uploadImage(uploaded.getUrl(), content, uploaded.getId(), collection);
                 resp.inserted(indexed);
             } catch (Exception e) {
                 if (fileId != null) {
-                    try { fileService.deleteFile(fileId); } catch (Exception ignore) {}
+                    try {
+                        fileService.deleteFile(fileId);
+                    } catch (Exception ignore) {
+                    }
                 }
                 String msg = e.getMessage() == null ? "" : e.getMessage();
                 ErrorCode code = msg.contains("读取失败") || msg.contains("extract")
@@ -256,9 +255,9 @@ public class ImageSearchServiceImpl implements ImageSearchService {
     }
 
     /**
-     * 用文件相对于 root 的路径，构造“祖先目录_文件名”作为新的存储名。
+     * 用文件相对于 root 的路径，构造"祖先目录_文件名"作为新的存储名。
      * 例如 root=G:\26\yy260613a\images，文件=1.png → images_1.png
-     *     root=G:\26\yy260613a\images，文件=web\2.png → images_web_2.png
+     * root=G:\26\yy260613a\images，文件=web\2.png → images_web_2.png
      */
     private static String buildNewName(Path rootPath, File f) {
         Path filePath = f.toPath();
@@ -348,7 +347,7 @@ public class ImageSearchServiceImpl implements ImageSearchService {
     }
 
     @Override
-    public PageResult<VectorImageRespVO> getImagePage(VectorImagePageReqVO pageReqVO) {
+    public PageResult<VectorImageRespVO> getImagePage(VectorImagePageReqVO pageReqVO, String collection) {
         // 1. 组装类型化查询条件（仅白名单字段：id / image_path / create_time / file_id / tenant_id）
         QueryCondition.Builder builder = QueryCondition.builder();
         boolean hasCondition = false;
@@ -401,7 +400,7 @@ public class ImageSearchServiceImpl implements ImageSearchService {
         // 一次性取全集（拉不动就截断）。limit 上限用 10_000 防 OOM，
         // 如果真实过滤后总数超过 10_000（实际场景极少见），需要切到分批累计或升级 SDK。
         final int HARD_LIMIT = 10_000;
-        List<QueryResult> all = milvusService.queryByCondition(cond, false, HARD_LIMIT);
+        List<QueryResult> all = imageIndexService.queryByCondition(cond, false, HARD_LIMIT, collection);
         if (all.isEmpty()) {
             return new PageResult<>(Collections.emptyList(), 0L);
         }
@@ -441,14 +440,14 @@ public class ImageSearchServiceImpl implements ImageSearchService {
     }
 
     @Override
-    public List<VectorImageRespVO> getImageListByIds(List<String> ids) {
+    public List<VectorImageRespVO> getImageListByIds(List<String> ids, String collection) {
         if (CollectionUtils.isEmpty(ids)) {
             return Collections.emptyList();
         }
         // 通过 image_index_service.queryByIds 拿到完整记录（带 vector），这里不需要 vector，
         // 因此复用 page 的逻辑：按 id in [...] 走条件查询（白名单支持）
         QueryCondition cond = QueryCondition.builder().in("id", ids).build();
-        List<QueryResult> results = milvusService.queryByCondition(cond, false, ids.size());
+        List<QueryResult> results = imageIndexService.queryByCondition(cond, false, ids.size(), collection);
         List<VectorImageRespVO> list = new ArrayList<>(results.size());
         for (QueryResult r : results) {
             list.add(VectorImageRespVO.builder()
@@ -463,13 +462,13 @@ public class ImageSearchServiceImpl implements ImageSearchService {
     }
 
     @Override
-    public boolean deleteImage(String id) throws Exception {
+    public boolean deleteImage(String id, String collection) throws Exception {
         if (StrUtil.isEmpty(id)) {
             return false;
         }
         // 先拿到对应记录的 fileId，删除向量后再清理关联文件
-        List<Long> fileIds = collectFileIdsByVectorIds(Collections.singletonList(id));
-        int cnt = imageIndexService.deleteByIds(Collections.singletonList(id));
+        List<Long> fileIds = collectFileIdsByVectorIds(Collections.singletonList(id), collection);
+        int cnt = imageIndexService.deleteByIds(Collections.singletonList(id), collection);
         if (cnt > 0) {
             deleteRelatedFiles(fileIds);
         }
@@ -477,13 +476,13 @@ public class ImageSearchServiceImpl implements ImageSearchService {
     }
 
     @Override
-    public int deleteImageList(List<String> ids) throws Exception {
+    public int deleteImageList(List<String> ids, String collection) throws Exception {
         if (CollectionUtils.isEmpty(ids)) {
             return 0;
         }
         // 先拿到对应记录的 fileId，删除向量后再清理关联文件
-        List<Long> fileIds = collectFileIdsByVectorIds(ids);
-        int cnt = imageIndexService.deleteByIds(ids);
+        List<Long> fileIds = collectFileIdsByVectorIds(ids, collection);
+        int cnt = imageIndexService.deleteByIds(ids, collection);
         if (cnt > 0) {
             deleteRelatedFiles(fileIds);
         }
@@ -493,12 +492,12 @@ public class ImageSearchServiceImpl implements ImageSearchService {
     /**
      * 通过向量 id 列表查询对应的 fileId，过滤掉无效的哨兵值并去重
      */
-    private List<Long> collectFileIdsByVectorIds(List<String> ids) {
+    private List<Long> collectFileIdsByVectorIds(List<String> ids, String collection) {
         if (CollectionUtils.isEmpty(ids)) {
             return Collections.emptyList();
         }
         QueryCondition cond = QueryCondition.builder().in("id", ids).build();
-        List<QueryResult> records = milvusService.queryByCondition(cond, false, ids.size());
+        List<QueryResult> records = imageIndexService.queryByCondition(cond, false, ids.size(), collection);
         return extractFileIds(records);
     }
 
@@ -507,14 +506,14 @@ public class ImageSearchServiceImpl implements ImageSearchService {
      * drop 之前必须先做完，否则数据丢了就拿不到了。
      * 分批拉取，每次最多 1000 条，直到拉不到为止。
      */
-    private List<Long> loadAllFileIds() {
+    private List<Long> loadAllFileIds(String collection) {
         List<Long> all = new ArrayList<>();
         Set<String> seenIds = new HashSet<>();
         int batchSize = 1000;
         // 与 getImagePage 同源的"恒真表达式"，避免空条件校验
         QueryCondition cond = QueryCondition.builder().gt("create_time", 0L).build();
         while (true) {
-            List<QueryResult> batch = milvusService.queryByCondition(cond, false, batchSize);
+            List<QueryResult> batch = imageIndexService.queryByCondition(cond, false, batchSize, collection);
             if (CollectionUtils.isEmpty(batch)) {
                 break;
             }
@@ -568,46 +567,46 @@ public class ImageSearchServiceImpl implements ImageSearchService {
     }
 
     @Override
-    public List<SearchResult> searchById(String id, int topK) throws Exception {
+    public List<SearchResult> searchById(String id, int topK, String collection) throws Exception {
         if (StrUtil.isEmpty(id)) {
             throw ServiceExceptionUtil.exception(ErrorCodeConstants.VECTOR_IMAGE_NOT_EXISTS);
         }
         // 先拿完整记录（含 vector），再以图搜图
-        List<com.lz.framework.vector.core.pojo.VectorRecord> records =
-                milvusService.queryByIds(Collections.singletonList(id));
-        if (records.isEmpty() || records.get(0) == null) {
+        List<VectorRecord> records =
+                imageIndexService.queryByIds(Collections.singletonList(id), collection);
+        if (records.isEmpty() || records.getFirst() == null) {
             throw ServiceExceptionUtil.exception(ErrorCodeConstants.VECTOR_IMAGE_NOT_EXISTS, id);
         }
         float[] vec = records.get(0).getVector();
         if (vec == null || vec.length == 0) {
             throw ServiceExceptionUtil.exception(ErrorCodeConstants.VECTOR_IMAGE_VECTOR_EMPTY, id);
         }
-        return milvusService.searchByVector(vec, topK);
+        return imageIndexService.searchByVector(vec, topK, collection);
     }
 
     @Override
-    public List<SearchResult> searchByStream(InputStream inputStream, int topK) throws Exception {
-        return imageIndexService.searchByStream(inputStream, topK);
+    public List<SearchResult> searchByStream(InputStream inputStream, int topK, String collection) throws Exception {
+        return imageIndexService.searchByStream(inputStream, topK, collection);
     }
 
     @Override
-    public Map<String, Object> getCollectionInfo() {
-        return milvusService.getCollectionInfo();
+    public Map<String, Object> getCollectionInfo(String collection) {
+        return imageIndexService.getCollectionInfo(collection);
     }
 
     @Override
-    public Map<String, Object> getCollectionStats(int sampleSize) {
-        return milvusService.getCollectionStats(sampleSize);
+    public Map<String, Object> getCollectionStats(int sampleSize, String collection) {
+        return imageIndexService.getCollectionStats(sampleSize, collection);
     }
 
     @Override
-    public void resetCollection() throws Exception {
+    public void resetCollection(String collection) throws Exception {
         // drop 之前先把所有 fileId 拉出来，否则数据没了就没法清理关联文件
-        List<Long> fileIds = loadAllFileIds();
-        milvusService.dropCollection();
+        List<Long> fileIds = loadAllFileIds(collection);
+        imageIndexService.dropCollection(collection);
         // 这里采用与 demo 一致的做法：drop 后立刻 init，保证下一波写入可用
         try {
-            milvusService.initCollection();
+            imageIndexService.initCollection(collection);
         } catch (Exception e) {
             log.warn("[resetCollection] drop 后重新初始化集合失败（可能 litchi.vector.enable=false）: {}",
                     e.getMessage());

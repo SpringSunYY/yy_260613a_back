@@ -428,7 +428,7 @@ public class DinoFeatureExtractor implements FeatureExtractor {
             } else if (initialPoolSize > 0 && total > initialPoolSize) {
                 // 守卫：单图并发任务数 > session 池容量时退化为串行，避免 borrowSession 锁等待拖慢整体。
                 // 例：scales=[224,336,448], sessionPoolSize=2 → total=3 > 2，走串行更稳。
-                log.debug("[DINO 单图] total={} > poolSize={}，退化为串行多尺度", total, initialPoolSize);
+                log.error("[DINO 单图] total={} > poolSize={}，退化为串行多尺度", total, initialPoolSize);
                 embOriginal = runMultiScaleSerial(rgb);
                 if (wantHflip) {
                     BufferedImage flipped = flipHorizontal(rgb);
@@ -469,7 +469,7 @@ public class DinoFeatureExtractor implements FeatureExtractor {
                     tasks.add(() -> {
                         long ts0 = System.currentTimeMillis();
                         float[] emb = runInference(tensors.get(idx), scale);
-                        log.debug("[DINO 任务] scale={} hflip={} | 推理耗时 {}ms",
+                        log.error("[DINO 任务] scale={} hflip={} | 推理耗时 {}ms",
                                 scale, idx >= scales.length, System.currentTimeMillis() - ts0);
                         return emb;
                     });
@@ -480,7 +480,7 @@ public class DinoFeatureExtractor implements FeatureExtractor {
                 // 单图耗时 ≈ max 而不是 2*max。走 commonPool 而非调用方传入的池——因为此分支
                 // 只在调用方传 null 时才会进入（即"我不在任何池里跑"），没有外层池可以借用。
                 List<Future<float[]>> futures = ForkJoinPool.commonPool().invokeAll(tasks);
-                log.debug("[DINO 并发调度] 提交 {} 个任务到 commonPool 并发执行，invokeAll 等待 {}ms",
+                log.error("[DINO 并发调度] 提交 {} 个任务到 commonPool 并发执行，invokeAll 等待 {}ms",
                         total, System.currentTimeMillis() - tSubmit);
 
                 // 3) 收集结果
@@ -629,7 +629,7 @@ public class DinoFeatureExtractor implements FeatureExtractor {
                     diag[PerfRecorder.RUN] += infDiag[1];
                     diag[PerfRecorder.BORROW_WAIT] += infDiag[2];
                 }
-                log.debug("[DINO 尺度] scale={} | 推理耗时 {}ms | 当前 {}/{} 个尺度有效",
+                log.error("[DINO 尺度] scale={} | 推理耗时 {}ms | 当前 {}/{} 个尺度有效",
                         targetShort,
                         infDiag != null ? (infDiag[0] + infDiag[1] + infDiag[2]) : -1,
                         si + 1, scales.length);
@@ -694,7 +694,7 @@ public class DinoFeatureExtractor implements FeatureExtractor {
             tasks.add(() -> {
                 long ts0 = System.currentTimeMillis();
                 float[] emb = runInference(tensorInputs[idx], scales[idx]);
-                log.debug("[DINO 尺度并发] scale={} | 推理耗时 {}ms",
+                log.error("[DINO 尺度并发] scale={} | 推理耗时 {}ms",
                         scales[idx], System.currentTimeMillis() - ts0);
                 return emb;
             });
@@ -731,7 +731,7 @@ public class DinoFeatureExtractor implements FeatureExtractor {
                 float scale = 1.0f / scales.length;
                 for (int i = 0; i < avgLen; i++) avg[i] += emb[i] * scale;
             }
-            log.debug("[DINO 多尺度并发] scales={} | 总等待 {}ms | 有效 {}/{}",
+            log.error("[DINO 多尺度并发] scales={} | 总等待 {}ms | 有效 {}/{}",
                     Arrays.toString(scales), System.currentTimeMillis() - t0, validScales, n);
         } catch (Exception e) {
             Thread.currentThread().interrupt();
@@ -1064,7 +1064,7 @@ public class DinoFeatureExtractor implements FeatureExtractor {
         } catch (Exception e) {
             // 探测失败时只 warn，允许启动（避免一个探测环节挂掉整个应用）
             log.warn("[DINO 头探测] ⚠️ 启动期维度探测失败，应用继续启动但请人工确认维度配置: {}", e.getMessage());
-            log.debug("[DINO 头探测] 详细异常", e);
+            log.error("[DINO 头探测] 详细异常", e);
         }
     }
 

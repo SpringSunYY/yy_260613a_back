@@ -1,4 +1,4 @@
-package com.lz.framework.vector.core.pojo;
+package com.lz.framework.vector.pojo;
 
 import java.util.ArrayList;
 import java.util.Arrays;

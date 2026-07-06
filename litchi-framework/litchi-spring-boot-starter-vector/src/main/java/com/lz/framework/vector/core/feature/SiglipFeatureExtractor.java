@@ -631,7 +631,7 @@ public class SiglipFeatureExtractor implements FeatureExtractor {
                 float scale = 1.0f / n;
                 for (int i = 0; i < avgLen; i++) avg[i] += emb[i] * scale;
             }
-            log.debug("[SigLIP 多尺度并发] scales={} | 总等待 {}ms | 有效 {}/{}",
+            log.error("[SigLIP 多尺度并发] scales={} | 总等待 {}ms | 有效 {}/{}",
                     Arrays.toString(scales), System.currentTimeMillis() - t0, validScales, n);
         } catch (Exception e) {
             Thread.currentThread().interrupt();
@@ -927,7 +927,7 @@ public class SiglipFeatureExtractor implements FeatureExtractor {
         } finally {
             g.dispose();
         }
-        log.debug("[SigLIP 白底裁切] 原图 {}x{} -> 内容 bbox ({},{},{},{}), 裁掉面积 {:.1f}%",
+        log.error("[SigLIP 白底裁切] 原图 {}x{} -> 内容 bbox ({},{},{},{}), 裁掉面积 {:.1f}%",
                 W, H, x0, y0, x1, y1, removedArea * 100.0 / (W * H));
         return out;
     }

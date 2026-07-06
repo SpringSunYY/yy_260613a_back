@@ -30,7 +30,7 @@ public abstract class AbstractFileClient<Config extends FileClientConfig> implem
      */
     public final void init() {
         doInit();
-        log.debug("[init][配置({}) 初始化完成]", config);
+        log.error("[init][配置({}) 初始化完成]", config);
     }
 
     /**

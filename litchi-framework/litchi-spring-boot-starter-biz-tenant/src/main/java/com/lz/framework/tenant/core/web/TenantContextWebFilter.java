@@ -1,6 +1,7 @@
 package com.lz.framework.tenant.core.web;
 
 import com.lz.framework.tenant.core.context.TenantContextHolder;
+import com.lz.framework.vector.core.isolation.VectorContextHolder;
 import com.lz.framework.web.core.util.WebFrameworkUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -29,8 +30,10 @@ public class TenantContextWebFilter extends OncePerRequestFilter {
         try {
             chain.doFilter(request, response);
         } finally {
-            // 清理
+            // 清理租户上下文
             TenantContextHolder.clear();
+            // 清理 Milvus activeDatabase ThreadLocal（防止线程池复用时串租户）
+            VectorContextHolder.clearActiveDatabase();
         }
     }
 

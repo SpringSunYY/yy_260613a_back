@@ -352,14 +352,19 @@ litchi:
   vector:
     enable: true # 是否启用向量，默认关闭，避免不使用向量也创建bean
     milvus:
+      # ==============================================================
+      # Milvus 连接配置
+      # ==============================================================
+      # Milvus 服务地址
       host: 192.168.100.10
       port: 19530
-      # 集合名（当 dynamic-collection=true 时，会自动拼接为 ${collection-name}_${embedding.model}，例如 image_search_clip）
-      collection-name: vector_image_search
-      # 是否开启动态集合名：true = collection-name 自动拼接当前激活的模型名
-      # 开启后切换模型无需手动清库，每个模型的数据隔离到独立 collection
-      # 例如 clip -> image_search_clip，dino -> image_search_dino
-      dynamic-collection: true
+      # Milvus 数据库名
+      # dynamic-database=true 时自动拼接为 ${database}_${embedding.model}（如 vector_image_search_dino）
+      database: vector_image_search
+      # 是否开启动态数据库名：true = database 自动拼接当前激活的模型名（默认开启）
+      # 开启后切换模型时 database 会自动切换，数据天然隔离，无需手动清库
+      dynamic-database: true
+
       # 启动时检测到 schema 不兼容时是否重建集合（数据会丢；改 schema 后临时打开跑一次）
       recreate-on-schema-change: true
       # 单次 Milvus insert RPC 的最大条数；超过会拆批打多次 RPC
@@ -367,20 +372,11 @@ litchi:
 
       # ============================================================
       # 多租户隔离配置
-      #   strategy=partition  → 单 collection 内按 tenant 建 partition（默认）
+      #   strategy=collection → 每租户一个独立 collection（默认）
       #   strategy=database   → 每租户一个独立 Milvus database（物理强隔离）
-      # 未启用租户 / tenantId 为 null / 已 ignore → 走 _default partition / default database
-      # 仅在引入 litchi-spring-boot-starter-biz-tenant 后生效
+      #   strategy=partition  → 单 collection 内按 tenantId 建 partition
       # ============================================================
-      isolation:
-        # 隔离策略：partition / database，默认 partition
-        strategy: partition
-        # partition 模式：分区名前缀（最终 partition 名 = 前缀 + tenantId）
-        partition-prefix: "t_"
-        # database 模式：database 名前缀（最终 database 名 = 前缀 + tenantId）
-        database-prefix: "tnt_"
-        # 首次访问某 tenant 的 partition/database 时是否自动创建
-        auto-create: true
+      isolation: collection
 
     # ==============================================================
     # 特征提取配置（支持多模型扩展：CLIP / DINOv2 / SigLIP 等）
@@ -391,9 +387,9 @@ litchi:
       # 推理设备：cpu / cuda
       device: cpu
       # 批量推理 batch size
-      batch-size: 32
+      batch-size: 16
       # 批量入库时的特征提取并行线程数（与 dino.session-pool-size 对齐）
-      feature-threads: 16
+      feature-threads: 8
       # ============================================================
       # ONNX Runtime IntraOp 策略（启动期一次性选定，运行时不可改）
       # ============================================================
@@ -425,7 +421,7 @@ litchi:
         # 关键：pool × intraOp 不能超过 CPU 物理核数。
         # pool 太大 + intraOp 太大会导致线程切换风暴，反而比少量 session 多线程慢。
         # 推荐：0 = 自动 min(CPU 核数, 8)；手工指定时建议 ≤ CPU 核数 / 2
-        session-pool-size: 16
+        session-pool-size: 8
         # 输出向量维度（ViT-B/32 = 512，ViT-B/16 = 512，ViT-L/14 = 768）
         feature-dim: 512
         # 多尺度推理的短边尺寸列表
@@ -448,7 +444,7 @@ litchi:
         # ONNX 模型路径
         vision-model-path: E:\Java\Code\MyStudy\Milvus\Models\siglip\vision_model.onnx
         # 视觉塔 OrtSession 池大小
-        session-pool-size: 16
+        session-pool-size: 8
         # 输出向量维度
         feature-dim: 768
         # 模型输入图片尺寸（必须与 ONNX 模型训练分辨率一致）
@@ -474,7 +470,7 @@ litchi:
         # 关键：pool × intraOp 不能超过 CPU 物理核数。
         # pool 太大 + intraOp 太大会导致线程切换风暴，反而比少量 session 多线程慢。
         # 推荐：0 = 自动 min(CPU 核数, 8)；手工指定时建议 ≤ CPU 核数 / 2
-        session-pool-size: 16
+        session-pool-size: 8
         # 输出向量维度（启动期 probeHeads 会自动校验）
         feature-dim: 768
         # 多尺度推理的短边尺寸列表

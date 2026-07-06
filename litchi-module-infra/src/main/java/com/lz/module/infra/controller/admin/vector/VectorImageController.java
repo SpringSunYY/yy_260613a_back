@@ -3,7 +3,8 @@ package com.lz.module.infra.controller.admin.vector;
 import cn.hutool.core.io.IoUtil;
 import com.lz.framework.common.pojo.CommonResult;
 import com.lz.framework.common.pojo.PageResult;
-import com.lz.framework.vector.core.pojo.SearchResult;
+import com.lz.framework.vector.constants.CollectionConstants;
+import com.lz.framework.vector.pojo.SearchResult;
 import com.lz.module.infra.controller.admin.file.vo.file.FileUploadReqVO;
 import com.lz.module.infra.controller.admin.file.vo.file.FileUploadRespVO;
 import com.lz.module.infra.controller.admin.vector.vo.*;
@@ -57,10 +58,10 @@ public class VectorImageController {
         }
         // 1) 先写文件日志：拿到 fileId 和真 url
         FileUploadRespVO uploaded = fileService.createFile(content, file.getOriginalFilename(),
-                uploadReqVO.getDirectory(), file.getContentType(), uploadReqVO.getModuleType());
+                uploadReqVO.getDirectory(), file.getContentType(), uploadReqVO.getModuleType() == null ? "infra" : uploadReqVO.getModuleType());
         // 2) 再索引：用真 url 写 Milvus.imagePath，保证搜索结果可点开
         try {
-            return success(imageSearchService.uploadImage(uploaded.getUrl(), content, uploaded.getId()));
+            return success(imageSearchService.uploadImage(uploaded.getUrl(), content, uploaded.getId(), CollectionConstants.INFRA_IMAGE_SEARCH));
         } catch (Exception e) {
             // 索引失败 → 回滚日志（删 infra_file 行 + 文件存储）
             try {
@@ -83,7 +84,7 @@ public class VectorImageController {
     public CommonResult<BatchUploadRespVO> uploadImages(
             @RequestParam("files") List<MultipartFile> files,
             @RequestParam(value = "moduleType", required = false) String moduleType) throws Exception {
-        return success(imageSearchService.batchUpload(files, moduleType));
+        return success(imageSearchService.batchUpload(files, moduleType, CollectionConstants.INFRA_IMAGE_SEARCH));
     }
 
     /**
@@ -96,7 +97,7 @@ public class VectorImageController {
     @Operation(summary = "按 URL 列表索引图片（同名跳过）")
     @PreAuthorize("@ss.hasPermission('infra:vectorImage:add')")
     public CommonResult<BatchUploadRespVO> uploadImagesByUrls(@Valid @RequestBody UploadUrlsReqVO reqVO) throws Exception {
-        return success(imageSearchService.uploadImagesByUrls(reqVO.getUrls()));
+        return success(imageSearchService.uploadImagesByUrls(reqVO.getUrls(), CollectionConstants.INFRA_IMAGE_SEARCH));
     }
 
     /**
@@ -113,7 +114,7 @@ public class VectorImageController {
     public CommonResult<BatchUploadRespVO> importFromDirectory(
             @RequestParam("dir") String dir,
             @RequestParam(value = "recursive", defaultValue = "true") boolean recursive) throws Exception {
-        return success(imageSearchService.importFromDirectory(dir, recursive));
+        return success(imageSearchService.importFromDirectory(dir, recursive, CollectionConstants.INFRA_IMAGE_SEARCH));
     }
 
     /**
@@ -123,7 +124,7 @@ public class VectorImageController {
     @Operation(summary = "获得以图搜图图片分页")
     @PreAuthorize("@ss.hasPermission('infra:vectorImage:query')")
     public CommonResult<PageResult<VectorImageRespVO>> getImagePage(@Valid VectorImagePageReqVO pageVO) {
-        return success(imageSearchService.getImagePage(pageVO));
+        return success(imageSearchService.getImagePage(pageVO, CollectionConstants.INFRA_IMAGE_SEARCH));
     }
 
     /**
@@ -134,8 +135,8 @@ public class VectorImageController {
     @Parameter(name = "id", description = "图片主键", required = true)
     @PreAuthorize("@ss.hasPermission('infra:vectorImage:query')")
     public CommonResult<VectorImageRespVO> getImage(@RequestParam("id") String id) {
-        List<VectorImageRespVO> list = imageSearchService.getImageListByIds(List.of(id));
-        return success(list.isEmpty() ? null : list.get(0));
+        List<VectorImageRespVO> list = imageSearchService.getImageListByIds(List.of(id), CollectionConstants.INFRA_IMAGE_SEARCH);
+        return success(list.isEmpty() ? null : list.getFirst());
     }
 
     /**
@@ -146,7 +147,7 @@ public class VectorImageController {
     @Parameter(name = "id", description = "图片主键", required = true)
     @PreAuthorize("@ss.hasPermission('infra:vectorImage:delete')")
     public CommonResult<Boolean> deleteImage(@RequestParam("id") String id) throws Exception {
-        return success(imageSearchService.deleteImage(id));
+        return success(imageSearchService.deleteImage(id, CollectionConstants.INFRA_IMAGE_SEARCH));
     }
 
     /**
@@ -157,7 +158,7 @@ public class VectorImageController {
     @Parameter(name = "ids", description = "主键列表", required = true)
     @PreAuthorize("@ss.hasPermission('infra:vectorImage:delete')")
     public CommonResult<Integer> deleteImageList(@RequestParam("ids") List<String> ids) throws Exception {
-        return success(imageSearchService.deleteImageList(ids));
+        return success(imageSearchService.deleteImageList(ids, CollectionConstants.INFRA_IMAGE_SEARCH));
     }
 
     /**
@@ -169,7 +170,7 @@ public class VectorImageController {
     @PreAuthorize("@ss.hasPermission('infra:vectorImage:search')")
     public CommonResult<List<SearchResult>> searchById(@RequestParam("id") String id,
                                                        @Valid VectorImageSearchReqVO reqVO) throws Exception {
-        return success(imageSearchService.searchById(id, reqVO.getTopK()));
+        return success(imageSearchService.searchById(id, reqVO.getTopK(), CollectionConstants.INFRA_IMAGE_SEARCH));
     }
 
     /**
@@ -181,7 +182,7 @@ public class VectorImageController {
     public CommonResult<List<SearchResult>> searchByUpload(@Valid VectorImageSearchReqVO reqVO)
             throws Exception {
         return success(imageSearchService
-                .searchByStream(reqVO.getFile().getInputStream(), reqVO.getTopK()));
+                .searchByStream(reqVO.getFile().getInputStream(), reqVO.getTopK(), CollectionConstants.INFRA_IMAGE_SEARCH));
     }
 
     /**
@@ -195,7 +196,7 @@ public class VectorImageController {
     @Operation(summary = "获得 Milvus 集合信息")
     @PreAuthorize("@ss.hasPermission('infra:vectorImage:query')")
     public CommonResult<Map<String, Object>> getCollectionInfo() {
-        return success(imageSearchService.getCollectionInfo());
+        return success(imageSearchService.getCollectionInfo(CollectionConstants.INFRA_IMAGE_SEARCH));
     }
 
     /**
@@ -207,7 +208,7 @@ public class VectorImageController {
     @PreAuthorize("@ss.hasPermission('infra:vectorImage:query')")
     public CommonResult<Map<String, Object>> getCollectionStats(
             @RequestParam(value = "sampleSize", defaultValue = "20") Integer sampleSize) {
-        return success(imageSearchService.getCollectionStats(sampleSize == null ? 20 : sampleSize));
+        return success(imageSearchService.getCollectionStats(sampleSize == null ? 20 : sampleSize, CollectionConstants.INFRA_IMAGE_SEARCH));
     }
 
     /**
@@ -217,8 +218,7 @@ public class VectorImageController {
     @Operation(summary = "重置 Milvus 集合")
     @PreAuthorize("@ss.hasPermission('infra:vectorImage:delete')")
     public CommonResult<Boolean> resetCollection() throws Exception {
-        imageSearchService.resetCollection();
+        imageSearchService.resetCollection(CollectionConstants.INFRA_IMAGE_SEARCH);
         return success(true);
     }
-
 }
