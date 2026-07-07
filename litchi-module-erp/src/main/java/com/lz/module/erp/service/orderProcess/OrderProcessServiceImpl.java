@@ -79,9 +79,12 @@ public class OrderProcessServiceImpl implements OrderProcessService {
     }
 
     @Override
+    public OrderProcessDO getOrderProcessByOrderNo(String orderNo) {
+        return orderProcessMapper.selectOne(OrderProcessDO::getOrderNo, orderNo);
+    }
+
+    @Override
     public PageResult<OrderProcessDO> getOrderProcessPage(OrderProcessPageReqVO pageReqVO) {
         return orderProcessMapper.selectPage(pageReqVO);
     }
-
-
 }

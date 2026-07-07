@@ -13,6 +13,7 @@ import com.lz.framework.common.exception.ErrorCode;
 public interface ErrorCodeConstants {
     // ========== 订单信息 ==========
     ErrorCode ORDER_NOT_EXISTS = new ErrorCode(1_003_000_001, "erp.order.back.notExists", "订单信息不存在");
+    ErrorCode ORDER_EXISTS = new ErrorCode(1_003_000_002, "erp.order.back.exists", "订单信息已存在");
     // ========== 导入通用错误码（可自行配置国际化） ==========
     ErrorCode ORDER_IMPORT_DATA_EMPTY = new ErrorCode(1_003_000_100, "erp.back.import.dataEmpty", "订单信息导入数据不能为空！");
 

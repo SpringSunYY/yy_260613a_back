@@ -2,8 +2,10 @@ package com.lz.module.erp.controller.admin.order.vo;
 
 import com.lz.framework.common.validation.i18n.I18nNotEmpty;
 import com.lz.framework.common.validation.i18n.I18nNotNull;
+import com.lz.module.erp.controller.admin.orderProcess.vo.OrderProcessSaveReqVO;
 import com.lz.module.erp.dal.dataobject.order.OrderDetailDO;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.Valid;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -63,14 +65,14 @@ public class OrderSaveReqVO {
      * 审核状态
      */
     @Schema(description = "审核状态", requiredMode = Schema.RequiredMode.REQUIRED, example = "2")
-    @I18nNotEmpty(i18nKey = "erp.order.back.auditStatus.notEmpty", message = "审核状态不能为空")
+//    @I18nNotEmpty(i18nKey = "erp.order.back.auditStatus.notEmpty", message = "审核状态不能为空")
     private String auditStatus;
 
     /**
      * 当前工序
      */
     @Schema(description = "当前工序", requiredMode = Schema.RequiredMode.REQUIRED)
-    @I18nNotEmpty(i18nKey = "erp.order.back.currentProcess.notEmpty", message = "当前工序不能为空")
+//    @I18nNotEmpty(i18nKey = "erp.order.back.currentProcess.notEmpty", message = "当前工序不能为空")
     private String currentProcess;
 
     /**
@@ -101,7 +103,7 @@ public class OrderSaveReqVO {
      * 规格
      */
     @Schema(description = "规格", requiredMode = Schema.RequiredMode.REQUIRED)
-    @I18nNotEmpty(i18nKey = "erp.order.back.specification.notEmpty", message = "规格不能为空")
+//    @I18nNotEmpty(i18nKey = "erp.order.back.specification.notEmpty", message = "规格不能为空")
     private String specification;
 
     /**
@@ -114,7 +116,7 @@ public class OrderSaveReqVO {
      * 布料
      */
     @Schema(description = "布料", requiredMode = Schema.RequiredMode.REQUIRED)
-    @I18nNotEmpty(i18nKey = "erp.order.back.fabric.notEmpty", message = "布料不能为空")
+//    @I18nNotEmpty(i18nKey = "erp.order.back.fabric.notEmpty", message = "布料不能为空")
     private String fabric;
 
     /**
@@ -160,7 +162,7 @@ public class OrderSaveReqVO {
      * 打印状态
      */
     @Schema(description = "打印状态", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
-    @I18nNotEmpty(i18nKey = "erp.order.back.printStatus.notEmpty", message = "打印状态不能为空")
+//    @I18nNotEmpty(i18nKey = "erp.order.back.printStatus.notEmpty", message = "打印状态不能为空")
     private String printStatus;
 
     /**
@@ -179,6 +181,14 @@ public class OrderSaveReqVO {
     * 订单明细列表
     */
     @Schema(description = "订单明细列表")
-    private List<OrderDetailDO> orderDetails;
+    @Valid
+    private List<OrderDetailSaveReqVO> orderDetails;
+
+    /**
+    * 订单工序
+    */
+    @Schema(description = "订单工序")
+    @Valid
+    private OrderProcessSaveReqVO orderProcess;
 
 }

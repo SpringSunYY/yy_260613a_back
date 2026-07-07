@@ -51,6 +51,14 @@ public interface OrderProcessService {
      */
     OrderProcessDO getOrderProcess(Long id);
 
+
+    /**
+     * 获得订单工序
+     *
+     * @param orderNo 工单号
+     * @return 订单工序
+     */
+    OrderProcessDO getOrderProcessByOrderNo(String orderNo);
     /**
      * 获得订单工序分页
      *
@@ -58,6 +66,5 @@ public interface OrderProcessService {
      * @return 订单工序分页
      */
     PageResult<OrderProcessDO> getOrderProcessPage(OrderProcessPageReqVO pageReqVO);
-
 
 }

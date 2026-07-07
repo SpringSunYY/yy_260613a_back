@@ -26,7 +26,7 @@ public class OrderProcessSaveReqVO {
      * 当前工序
      */
     @Schema(description = "当前工序", requiredMode = Schema.RequiredMode.REQUIRED)
-    @I18nNotEmpty(i18nKey = "erp.orderProcess.back.currentProcess.notEmpty", message = "当前工序不能为空")
+//    @I18nNotEmpty(i18nKey = "erp.orderProcess.back.currentProcess.notEmpty", message = "当前工序不能为空")
     private String currentProcess;
 
     /**

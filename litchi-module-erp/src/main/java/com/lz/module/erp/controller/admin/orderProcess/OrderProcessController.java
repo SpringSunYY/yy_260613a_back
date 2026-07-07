@@ -107,6 +107,18 @@ public class OrderProcessController {
     }
 
     /**
+     * 根据工单号查询订单工序
+     */
+    @GetMapping("/get-by-order-no")
+    @Operation(summary = "根据工单号查询订单工序")
+    @Parameter(name = "orderNo", description = "工单号", required = true, example = "1024")
+    @PreAuthorize("@ss.hasPermission('erp:order-process:query')")
+    public CommonResult<OrderProcessRespVO> getOrderProcessByOrderNo(@RequestParam("orderNo") String orderNo) {
+        OrderProcessDO orderProcess = orderProcessService.getOrderProcessByOrderNo(orderNo);
+        return success(BeanUtils.toBean(orderProcess, OrderProcessRespVO.class));
+    }
+
+    /**
      * 获取订单工序分页
      */
     @GetMapping("/page")
