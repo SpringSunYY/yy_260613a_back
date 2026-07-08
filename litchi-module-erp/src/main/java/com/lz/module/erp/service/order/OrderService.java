@@ -63,6 +63,14 @@ public interface OrderService {
     void deleteOrderListByIds(List<Long> ids);
 
     /**
+     * 校验订单信息是否存在
+     * Id校验不存在，工单号校验存在
+     * @param orderNo 工单号
+     * @return 订单信息
+     */
+    OrderDO validateOrderExistsByNo(String orderNo);
+
+    /**
      * 获得订单信息
      *
      * @param id 编号

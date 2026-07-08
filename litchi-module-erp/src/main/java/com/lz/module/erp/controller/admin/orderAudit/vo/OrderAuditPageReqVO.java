@@ -39,20 +39,6 @@ public class OrderAuditPageReqVO extends PageParam {
     @Schema(description = "审核状态", example = "2")
     private String auditStatus;
 
-    /**
-    * 审核人
-    */
-    @Schema(description = "审核人")
-    private String auditPerson;
-
-    /**
-    * 审核时间
-    */
-    @Sortable(value = "audit_time")
-    @I18nSize(i18nKey = "erp.orderAudit.back.auditTime.size", min = 0, max = 2, message = "审核时间长度不能超过2")
-    @Schema(description = "审核时间")
-    @DateTimeFormat(pattern = FORMAT_YEAR_MONTH_DAY_HOUR_MINUTE_SECOND)
-    private LocalDateTime[] auditTime;
 
     /**
     * 创建时间

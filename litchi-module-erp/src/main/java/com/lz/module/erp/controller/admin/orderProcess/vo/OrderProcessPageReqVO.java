@@ -1,13 +1,12 @@
 package com.lz.module.erp.controller.admin.orderProcess.vo;
 
-import lombok.*;
-import java.util.*;
-import io.swagger.v3.oas.annotations.media.Schema;
-import com.lz.framework.common.pojo.PageParam;
 import com.lz.framework.common.annotation.Sortable;
+import com.lz.framework.common.pojo.PageParam;
 import com.lz.framework.common.validation.i18n.I18nSize;
-import jakarta.validation.constraints.Size;
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.Data;
 import org.springframework.format.annotation.DateTimeFormat;
+
 import java.time.LocalDateTime;
 
 import static com.lz.framework.common.util.date.DateUtils.FORMAT_YEAR_MONTH_DAY_HOUR_MINUTE_SECOND;

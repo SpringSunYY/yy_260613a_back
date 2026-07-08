@@ -4,6 +4,7 @@ import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.ObjUtil;
 import cn.hutool.core.util.StrUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.lz.framework.common.enums.CommonStatusEnum;
 import com.lz.framework.common.exception.ServiceException;
@@ -327,6 +328,21 @@ public class AdminUserServiceImpl implements AdminUserService {
             return Collections.emptyList();
         }
         return userMapper.selectByIds(ids);
+    }
+
+    @Override
+    public List<AdminUserDO> getUserSimpList(List<Long> ids) {
+        if (CollUtil.isEmpty(ids)){
+            return Collections.emptyList();
+        }
+        LambdaQueryWrapper<AdminUserDO> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.select(
+                AdminUserDO::getId,
+                AdminUserDO::getNickname,
+                AdminUserDO::getUsername
+        );
+        queryWrapper.in(AdminUserDO::getId, ids);
+        return userMapper.selectList(queryWrapper);
     }
 
     @Override

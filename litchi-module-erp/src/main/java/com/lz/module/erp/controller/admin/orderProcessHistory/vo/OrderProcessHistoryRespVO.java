@@ -38,6 +38,11 @@ public class OrderProcessHistoryRespVO {
      */
     @Schema(description = "当前工序", requiredMode = Schema.RequiredMode.REQUIRED)
     private String currentProcess;
+    /**
+     * 创建人
+     */
+    @Schema(description = "创建人")
+    private String creator;
 
     /**
      * 创建时间

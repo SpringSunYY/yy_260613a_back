@@ -22,8 +22,6 @@ public interface OrderAuditMapper extends BaseMapperX<OrderAuditDO> {
                 .eqIfPresent(OrderAuditDO::getOrderNo, reqVO.getOrderNo())
                 .eqIfPresent(OrderAuditDO::getOldAuditStatus, reqVO.getOldAuditStatus())
                 .eqIfPresent(OrderAuditDO::getAuditStatus, reqVO.getAuditStatus())
-                .likeIfPresent(OrderAuditDO::getAuditPerson, reqVO.getAuditPerson())
-                .betweenIfPresent(OrderAuditDO::getAuditTime, reqVO.getAuditTime())
                 .betweenIfPresent(OrderAuditDO::getCreateTime, reqVO.getCreateTime())
                 .applyOrderDesc(reqVO, OrderAuditDO::getId));
     }

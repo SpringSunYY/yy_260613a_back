@@ -2,12 +2,17 @@ package com.lz.module.erp.service.orderProcessHistory;
 
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
+import com.lz.module.erp.dal.dataobject.orderProcess.OrderProcessDO;
+import com.lz.module.system.api.user.AdminUserApi;
+import com.lz.module.system.api.user.dto.AdminUserSimpRespDTO;
 import org.springframework.stereotype.Service;
 import jakarta.annotation.Resource;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
+import java.util.stream.Collectors;
+
 import com.lz.module.erp.controller.admin.orderProcessHistory.vo.*;
 import com.lz.module.erp.dal.dataobject.orderProcessHistory.OrderProcessHistoryDO;
 import com.lz.framework.common.pojo.PageResult;
@@ -33,6 +38,8 @@ public class OrderProcessHistoryServiceImpl implements OrderProcessHistoryServic
     @Resource
     private OrderProcessHistoryMapper orderProcessHistoryMapper;
 
+    @Resource
+    private AdminUserApi adminUserApi;
     @Override
     public Long createOrderProcessHistory(OrderProcessHistorySaveReqVO createReqVO) {
         // 插入
@@ -80,7 +87,19 @@ public class OrderProcessHistoryServiceImpl implements OrderProcessHistoryServic
 
     @Override
     public PageResult<OrderProcessHistoryDO> getOrderProcessHistoryPage(OrderProcessHistoryPageReqVO pageReqVO) {
-        return orderProcessHistoryMapper.selectPage(pageReqVO);
+        PageResult<OrderProcessHistoryDO> orderProcessHistoryDOPageResult = orderProcessHistoryMapper.selectPage(pageReqVO);
+        //构建创建人
+        //提取所有的创建人
+        List<String> creatorIds = orderProcessHistoryDOPageResult.getList()
+                .stream().map(OrderProcessHistoryDO::getCreator).distinct().toList();
+        List<AdminUserSimpRespDTO> userSimpList = adminUserApi.getUserSimpList(creatorIds);
+        //根据id转为map
+        Map<String, AdminUserSimpRespDTO> userSimpMap = userSimpList.stream()
+                .collect(Collectors.toMap(AdminUserSimpRespDTO::getId, v -> v));
+        orderProcessHistoryDOPageResult.getList().forEach(orderDO -> {
+            orderDO.setCreator(userSimpMap.getOrDefault(orderDO.getCreator(),new AdminUserSimpRespDTO()).getNickname());
+        });
+        return orderProcessHistoryDOPageResult;
     }
 
 

@@ -118,6 +118,11 @@ public class OrderProcessRespVO {
     private String remark;
 
     /**
+     * 创建人
+     */
+    @Schema(description = "创建人")
+    private String creator;
+    /**
      * 创建时间
      */
     @Schema(description = "创建时间", requiredMode = Schema.RequiredMode.REQUIRED)

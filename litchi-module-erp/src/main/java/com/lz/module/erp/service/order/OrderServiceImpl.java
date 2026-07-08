@@ -2,7 +2,6 @@ package com.lz.module.erp.service.order;
 
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.ObjectUtil;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.lz.framework.common.pojo.PageResult;
 import com.lz.framework.common.util.object.BeanUtils;
@@ -21,12 +20,16 @@ import com.lz.module.erp.dal.mysql.orderProcess.OrderProcessMapper;
 import com.lz.module.erp.enums.ErpOrderAuditStatusEnum;
 import com.lz.module.erp.enums.ErpOrderCurrentProcessEnum;
 import com.lz.module.erp.enums.ErpOrderPrintStatusEnum;
+import com.lz.module.system.api.user.AdminUserApi;
+import com.lz.module.system.api.user.dto.AdminUserSimpRespDTO;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import static com.lz.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static com.lz.framework.common.util.collection.CollectionUtils.convertList;
@@ -48,6 +51,8 @@ public class OrderServiceImpl implements OrderService {
     private OrderDetailMapper orderDetailMapper;
     @Resource
     private OrderProcessMapper orderProcessMapper;
+    @Resource
+    private AdminUserApi adminUserApi;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -159,7 +164,7 @@ public class OrderServiceImpl implements OrderService {
 
 
     /**
-     * 校验订单信息是否存在
+     * 校验订单信息是否存在，这里返回的还是根据id查询的订单信息
      * Id校验不存在，工单号校验存在
      * @param id      订单信息id
      * @param orderNo 工单号
@@ -186,6 +191,20 @@ public class OrderServiceImpl implements OrderService {
         return orderDO;
     }
 
+    /**
+     * 校验订单信息是否存在
+     * @param orderNo 工单号
+     * @return 订单信息
+     */
+    @Override
+    public OrderDO validateOrderExistsByNo(String orderNo) {
+        OrderDO order = orderMapper.selectOne(OrderDO::getOrderNo, orderNo);
+        if (order == null) {
+            throw exception(ORDER_NOT_EXISTS);
+        }
+        return order;
+    }
+
     @Override
     public OrderDO getOrder(Long id) {
         return orderMapper.selectById(id);
@@ -198,7 +217,19 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public PageResult<OrderDO> getOrderPage(OrderPageReqVO pageReqVO) {
-        return orderMapper.selectPage(pageReqVO);
+        PageResult<OrderDO> orderDOPageResult = orderMapper.selectPage(pageReqVO);
+        //构建创建人
+        //提取所有的创建人
+        List<String> creatorIds = orderDOPageResult.getList()
+                .stream().map(OrderDO::getCreator).distinct().toList();
+        List<AdminUserSimpRespDTO> userSimpList = adminUserApi.getUserSimpList(creatorIds);
+        //根据id转为map
+        Map<String, AdminUserSimpRespDTO> userSimpMap = userSimpList.stream()
+                .collect(Collectors.toMap(AdminUserSimpRespDTO::getId, v -> v));
+        orderDOPageResult.getList().forEach(orderDO -> {
+            orderDO.setCreator(userSimpMap.getOrDefault(orderDO.getCreator(),new AdminUserSimpRespDTO()).getNickname());
+        });
+        return orderDOPageResult;
     }
 
     @Override

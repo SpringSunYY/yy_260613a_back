@@ -34,9 +34,9 @@ public class OrderAuditSaveReqVO {
     /**
      * 原状态
      */
-    @Schema(description = "原状态", requiredMode = Schema.RequiredMode.REQUIRED, example = "2")
-    @I18nNotEmpty(i18nKey = "erp.orderAudit.back.oldAuditStatus.notEmpty", message = "原状态不能为空")
-    private String oldAuditStatus;
+//    @Schema(description = "原状态", requiredMode = Schema.RequiredMode.REQUIRED, example = "2")
+//    @I18nNotEmpty(i18nKey = "erp.orderAudit.back.oldAuditStatus.notEmpty", message = "原状态不能为空")
+//    private String oldAuditStatus;
 
     /**
      * 审核状态
@@ -45,19 +45,6 @@ public class OrderAuditSaveReqVO {
     @I18nNotEmpty(i18nKey = "erp.orderAudit.back.auditStatus.notEmpty", message = "审核状态不能为空")
     private String auditStatus;
 
-    /**
-     * 审核人
-     */
-    @Schema(description = "审核人", requiredMode = Schema.RequiredMode.REQUIRED)
-    @I18nNotEmpty(i18nKey = "erp.orderAudit.back.auditPerson.notEmpty", message = "审核人不能为空")
-    private String auditPerson;
-
-    /**
-     * 审核时间
-     */
-    @Schema(description = "审核时间", requiredMode = Schema.RequiredMode.REQUIRED)
-    @I18nNotNull(i18nKey = "erp.orderAudit.back.auditTime.notNull", message = "审核时间不能为空")
-    private LocalDateTime auditTime;
 
     /**
      * 审核意见

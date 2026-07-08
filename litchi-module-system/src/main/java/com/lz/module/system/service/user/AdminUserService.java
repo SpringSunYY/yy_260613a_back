@@ -159,6 +159,14 @@ public interface AdminUserService {
     List<AdminUserDO> getUserList(Collection<Long> ids);
 
     /**
+     * 获得用户精简信息列表
+     *
+     * @param ids 新用户编号数组
+     * @return 用户精简信息列表
+     */
+    List<AdminUserDO> getUserSimpList(List<Long> ids);
+
+    /**
      * 校验用户们是否有效。如下情况，视为无效：
      * 1. 用户编号不存在
      * 2. 用户被禁用

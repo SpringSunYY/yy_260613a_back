@@ -45,14 +45,6 @@ public class OrderAuditDO extends BaseDO {
      */
     private String auditStatus;
     /**
-     * 审核人
-     */
-    private String auditPerson;
-    /**
-     * 审核时间
-     */
-    private LocalDateTime auditTime;
-    /**
      * 审核意见
      */
     private String auditRemark;

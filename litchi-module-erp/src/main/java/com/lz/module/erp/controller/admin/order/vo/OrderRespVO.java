@@ -1,10 +1,9 @@
 package com.lz.module.erp.controller.admin.order.vo;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.*;
+import lombok.Data;
 
 import java.time.LocalDateTime;
-import java.util.*;
 
 /**
  * 订单信息 Response VO
@@ -158,6 +157,12 @@ public class OrderRespVO {
      */
     @Schema(description = "备注", example = "随便")
     private String remark;
+
+    /**
+     * 创建人
+     */
+    @Schema(description = "创建人")
+    private String creator;
 
     /**
      * 创建时间

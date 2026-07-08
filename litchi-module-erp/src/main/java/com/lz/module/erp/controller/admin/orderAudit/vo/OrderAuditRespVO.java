@@ -39,22 +39,15 @@ public class OrderAuditRespVO {
     private String auditStatus;
 
     /**
-     * 审核人
-     */
-    @Schema(description = "审核人", requiredMode = Schema.RequiredMode.REQUIRED)
-    private String auditPerson;
-
-    /**
-     * 审核时间
-     */
-    @Schema(description = "审核时间", requiredMode = Schema.RequiredMode.REQUIRED)
-    private LocalDateTime auditTime;
-
-    /**
      * 审核意见
      */
     @Schema(description = "审核意见", example = "你猜")
     private String auditRemark;
+    /**
+     * 创建人
+     */
+    @Schema(description = "创建人")
+    private String creator;
 
     /**
      * 创建时间

@@ -54,23 +54,6 @@ public class OrderAuditExcelVO {
     private String auditStatus;
 
     /**
-    * 审核人
-    */
-    @ExcelProperty("审核人")
-    @ExcelI18n(i18nKey = "erp.orderAudit.field.auditPerson")
-    @I18nNotEmpty(i18nKey = "erp.orderAudit.back.auditPerson.notEmpty", message = "审核人不能为空")
-    private String auditPerson;
-
-    /**
-    * 审核时间
-    */
-    @ExcelProperty(value = "审核时间")
-    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    @ExcelI18n(i18nKey = "erp.orderAudit.field.auditTime")
-    @I18nNotNull(i18nKey = "erp.orderAudit.back.auditTime.notNull", message = "审核时间不能为空")
-    private LocalDateTime auditTime;
-
-    /**
     * 审核意见
     */
     @ExcelProperty("审核意见")

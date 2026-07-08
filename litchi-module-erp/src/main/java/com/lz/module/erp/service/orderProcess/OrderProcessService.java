@@ -67,4 +67,12 @@ public interface OrderProcessService {
      */
     PageResult<OrderProcessDO> getOrderProcessPage(OrderProcessPageReqVO pageReqVO);
 
+
+    /**
+     * 更新订单工序状态
+     *
+     * @param orderNo 工单号
+     * @param targetProcess 工单状态
+     */
+    void updateProcessToTargetProcessByNo(String orderNo, String targetProcess);
 }

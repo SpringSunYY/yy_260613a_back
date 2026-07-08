@@ -2,22 +2,29 @@ package com.lz.module.erp.service.orderProcess;
 
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.dynamic.datasource.annotation.DSTransactional;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.lz.framework.common.pojo.PageResult;
 import com.lz.framework.common.util.object.BeanUtils;
 import com.lz.module.erp.controller.admin.orderProcess.vo.OrderProcessPageReqVO;
 import com.lz.module.erp.controller.admin.orderProcess.vo.OrderProcessSaveReqVO;
+import com.lz.module.erp.controller.admin.orderProcessHistory.vo.OrderProcessHistorySaveReqVO;
 import com.lz.module.erp.dal.dataobject.order.OrderDO;
+import com.lz.module.erp.dal.dataobject.orderAudit.OrderAuditDO;
 import com.lz.module.erp.dal.dataobject.orderProcess.OrderProcessDO;
 import com.lz.module.erp.dal.mysql.orderProcess.OrderProcessMapper;
 import com.lz.module.erp.service.order.OrderService;
+import com.lz.module.erp.service.orderProcessHistory.OrderProcessHistoryService;
+import com.lz.module.system.api.user.AdminUserApi;
+import com.lz.module.system.api.user.dto.AdminUserSimpRespDTO;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import static com.lz.framework.common.exception.util.ServiceExceptionUtil.exception;
-import static com.lz.module.erp.enums.ErrorCodeConstants.ORDER_NOT_EXISTS;
 import static com.lz.module.erp.enums.ErrorCodeConstants.ORDER_PROCESS_NOT_EXISTS;
 
 /**
@@ -35,6 +42,11 @@ public class OrderProcessServiceImpl implements OrderProcessService {
     @Resource
     private OrderService orderService;
 
+    @Resource
+    private OrderProcessHistoryService orderProcessHistoryService;
+
+    @Resource
+    private AdminUserApi adminUserApi;
     @Override
     public Long createOrderProcess(OrderProcessSaveReqVO createReqVO) {
         // 插入
@@ -51,7 +63,7 @@ public class OrderProcessServiceImpl implements OrderProcessService {
         // 校验存在
         OrderProcessDO orderProcessDO = validateOrderProcessExists(updateReqVO.getId());
         //校验订单是否存在
-        OrderDO orderDO = validateOrderProcessExists(orderProcessDO.getOrderNo());
+        OrderDO orderDO = orderService.validateOrderExistsByNo(orderProcessDO.getOrderNo());
         //判断冗余数据是否一致，如果不一致要更新订单的数据
         if ((StrUtil.isNotEmpty(updateReqVO.getOrderImage()) && StrUtil.isNotEmpty(orderDO.getOrderImage()) && !updateReqVO.getOrderImage().equals(orderDO.getOrderImage()))
                 || (StrUtil.isNotEmpty(updateReqVO.getQrCode()) && StrUtil.isNotEmpty(orderDO.getQrCode()) && !updateReqVO.getQrCode().equals(orderDO.getQrCode()))
@@ -66,13 +78,6 @@ public class OrderProcessServiceImpl implements OrderProcessService {
         orderProcessMapper.updateById(updateObj);
     }
 
-    private OrderDO validateOrderProcessExists(String orderNo) {
-        OrderDO order = orderService.getOrderByOrderNo(orderNo);
-        if (order == null) {
-            throw exception(ORDER_NOT_EXISTS);
-        }
-        return order;
-    }
 
     @Override
     public void deleteOrderProcess(Long id) {
@@ -109,6 +114,37 @@ public class OrderProcessServiceImpl implements OrderProcessService {
 
     @Override
     public PageResult<OrderProcessDO> getOrderProcessPage(OrderProcessPageReqVO pageReqVO) {
-        return orderProcessMapper.selectPage(pageReqVO);
+        PageResult<OrderProcessDO> orderProcessDOPageResult = orderProcessMapper.selectPage(pageReqVO);
+        //构建创建人
+        //提取所有的创建人
+        List<String> creatorIds = orderProcessDOPageResult.getList()
+                .stream().map(OrderProcessDO::getCreator).distinct().toList();
+        List<AdminUserSimpRespDTO> userSimpList = adminUserApi.getUserSimpList(creatorIds);
+        //根据id转为map
+        Map<String, AdminUserSimpRespDTO> userSimpMap = userSimpList.stream()
+                .collect(Collectors.toMap(AdminUserSimpRespDTO::getId, v -> v));
+        orderProcessDOPageResult.getList().forEach(orderDO -> {
+            orderDO.setCreator(userSimpMap.getOrDefault(orderDO.getCreator(),new AdminUserSimpRespDTO()).getNickname());
+        });
+        return orderProcessDOPageResult;
+    }
+
+    @Override
+    @DSTransactional
+    public void updateProcessToTargetProcessByNo(String orderNo, String targetProcess) {
+        //先查询工序是否存在
+        OrderProcessDO orderProcessDO = orderProcessMapper.selectOne(OrderProcessDO::getOrderNo, orderNo);
+        if (orderProcessDO == null) {
+            throw exception(ORDER_PROCESS_NOT_EXISTS);
+        }
+        OrderProcessHistorySaveReqVO createReqVO = new OrderProcessHistorySaveReqVO();
+        createReqVO.setOrderNo(orderNo);
+        createReqVO.setOldProcess(orderProcessDO.getCurrentProcess());
+        createReqVO.setCurrentProcess(targetProcess);
+        orderProcessHistoryService.createOrderProcessHistory(createReqVO);
+        LambdaUpdateWrapper<OrderProcessDO> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.eq(OrderProcessDO::getOrderNo, orderNo);
+        updateWrapper.set(OrderProcessDO::getCurrentProcess, targetProcess);
+        orderProcessMapper.update(updateWrapper);
     }
 }
