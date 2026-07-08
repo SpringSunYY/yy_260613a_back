@@ -72,6 +72,17 @@ public class OrderController {
     }
 
     /**
+     * 提交审核订单信息
+     */
+    @PostMapping("/submit-audit-order")
+    @Operation(summary = "提交审核订单信息")
+    @PreAuthorize("@ss.hasPermission('erp:order:create')")
+    public CommonResult<Boolean> submitAuditOrder(@Valid @RequestBody OrderAuditReqVO auditReqVO) {
+        orderService.submitAuditOrder(auditReqVO);
+        return success(true);
+    }
+
+    /**
      * 删除订单信息
      */
     @DeleteMapping("/delete")

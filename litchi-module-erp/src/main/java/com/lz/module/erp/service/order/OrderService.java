@@ -86,6 +86,13 @@ public interface OrderService {
      */
     PageResult<OrderDO> getOrderPage(OrderPageReqVO pageReqVO);
 
+    /**
+     * 提交审核订单信息
+     *
+     * @param auditReqVO 审核信息
+     */
+    void submitAuditOrder(@Valid OrderAuditReqVO auditReqVO);
+
 
     // ==================== 子表（订单明细） ====================
 

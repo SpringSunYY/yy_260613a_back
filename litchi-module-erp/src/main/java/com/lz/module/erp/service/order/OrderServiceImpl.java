@@ -2,9 +2,12 @@ package com.lz.module.erp.service.order;
 
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.ObjectUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.lz.framework.common.pojo.PageResult;
 import com.lz.framework.common.util.object.BeanUtils;
 import com.lz.framework.common.util.object.ObjectUtils;
+import com.lz.module.erp.controller.admin.order.vo.OrderAuditReqVO;
 import com.lz.module.erp.controller.admin.order.vo.OrderDetailSaveReqVO;
 import com.lz.module.erp.controller.admin.order.vo.OrderPageReqVO;
 import com.lz.module.erp.controller.admin.order.vo.OrderSaveReqVO;
@@ -196,6 +199,21 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public PageResult<OrderDO> getOrderPage(OrderPageReqVO pageReqVO) {
         return orderMapper.selectPage(pageReqVO);
+    }
+
+    @Override
+    public void submitAuditOrder(OrderAuditReqVO auditReqVO) {
+        //校验存在
+        OrderDO orderDO = validateOrderExists(auditReqVO.getId(), null);
+        //如果状态不是待审核
+        if (!ErpOrderAuditStatusEnum.ORDER_AUDIT_STATUS_1.getStatus().equals(orderDO.getAuditStatus())) {
+            throw exception(ORDER_AUDIT_STATUS_ERROR);
+        }
+        //直接更新订单状态为待审核
+        LambdaUpdateWrapper<OrderDO> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.eq(OrderDO::getId, auditReqVO.getId());
+        updateWrapper.set(OrderDO::getAuditStatus, ErpOrderAuditStatusEnum.ORDER_AUDIT_STATUS_2.getStatus());
+        orderMapper.update(updateWrapper);
     }
 
 
