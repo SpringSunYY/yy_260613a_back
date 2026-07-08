@@ -75,4 +75,12 @@ public interface OrderProcessService {
      * @param targetProcess 工单状态
      */
     void updateProcessToTargetProcessByNo(String orderNo, String targetProcess);
+
+    /**
+     * 更新订单工序状态
+     *
+     * @param reqVO 工单状态
+     */
+    void updateProcessToTargetProcess(OrderProcessSaveReqVO reqVO);
+
 }

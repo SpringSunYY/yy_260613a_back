@@ -70,6 +70,14 @@ public class OrderProcessController {
         return success(true);
     }
 
+    @PutMapping("/update/process")
+    @Operation(summary = "更新订单工序")
+    @PreAuthorize("@ss.hasPermission('erp:order-process:update')")
+    public CommonResult<Boolean> updateProcessToTargetProcessByNo(@Valid @RequestBody OrderProcessSaveReqVO reqVO) {
+        orderProcessService.updateProcessToTargetProcess(reqVO);
+        return success(true);
+    }
+
     /**
      * 删除订单工序
      */

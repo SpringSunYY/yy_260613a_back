@@ -125,6 +125,4 @@ public class OrderProcessHistoryController {
         ExcelUtils.write(response, "订单工序记录.xls", "数据", OrderProcessHistoryExcelVO.class,
                         BeanUtils.toBean(list, OrderProcessHistoryExcelVO.class));
     }
-
-
 }

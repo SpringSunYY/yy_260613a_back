@@ -32,7 +32,6 @@ public interface OrderProcessMapper extends BaseMapperX<OrderProcessDO> {
                 .eqIfPresent(OrderProcessDO::getPocket, reqVO.getPocket())
                 .eqIfPresent(OrderProcessDO::getNeckline, reqVO.getNeckline())
                 .betweenIfPresent(OrderProcessDO::getCreateTime, reqVO.getCreateTime())
-                .applyOrderDesc(reqVO, OrderProcessDO::getId));
+                .applyOrderDesc(reqVO, OrderProcessDO::getUpdateTime));
     }
-
 }

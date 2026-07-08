@@ -5,13 +5,17 @@ import com.baomidou.dynamic.datasource.annotation.DSTransactional;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.lz.framework.common.pojo.PageResult;
 import com.lz.framework.common.util.object.BeanUtils;
+import com.lz.framework.security.core.service.SecurityFrameworkService;
+import com.lz.framework.security.core.util.SecurityFrameworkUtils;
 import com.lz.module.erp.controller.admin.orderProcess.vo.OrderProcessPageReqVO;
 import com.lz.module.erp.controller.admin.orderProcess.vo.OrderProcessSaveReqVO;
+import com.lz.module.erp.controller.admin.orderProcess.vo.OrderProcessUpdateProcessReqVO;
 import com.lz.module.erp.controller.admin.orderProcessHistory.vo.OrderProcessHistorySaveReqVO;
 import com.lz.module.erp.dal.dataobject.order.OrderDO;
-import com.lz.module.erp.dal.dataobject.orderAudit.OrderAuditDO;
 import com.lz.module.erp.dal.dataobject.orderProcess.OrderProcessDO;
 import com.lz.module.erp.dal.mysql.orderProcess.OrderProcessMapper;
+import com.lz.module.erp.enums.ErpOrderCurrentProcessEnum;
+import com.lz.module.erp.enums.PerConstants;
 import com.lz.module.erp.service.order.OrderService;
 import com.lz.module.erp.service.orderProcessHistory.OrderProcessHistoryService;
 import com.lz.module.system.api.user.AdminUserApi;
@@ -20,10 +24,12 @@ import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static com.lz.framework.common.exception.enums.GlobalErrorCodeConstants.FORBIDDEN;
 import static com.lz.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static com.lz.module.erp.enums.ErrorCodeConstants.ORDER_PROCESS_NOT_EXISTS;
 
@@ -47,6 +53,10 @@ public class OrderProcessServiceImpl implements OrderProcessService {
 
     @Resource
     private AdminUserApi adminUserApi;
+
+    @Resource
+    private SecurityFrameworkService securityFrameworkService;
+
     @Override
     public Long createOrderProcess(OrderProcessSaveReqVO createReqVO) {
         // 插入
@@ -124,7 +134,7 @@ public class OrderProcessServiceImpl implements OrderProcessService {
         Map<String, AdminUserSimpRespDTO> userSimpMap = userSimpList.stream()
                 .collect(Collectors.toMap(AdminUserSimpRespDTO::getId, v -> v));
         orderProcessDOPageResult.getList().forEach(orderDO -> {
-            orderDO.setCreator(userSimpMap.getOrDefault(orderDO.getCreator(),new AdminUserSimpRespDTO()).getNickname());
+            orderDO.setCreator(userSimpMap.getOrDefault(orderDO.getCreator(), new AdminUserSimpRespDTO()).getNickname());
         });
         return orderProcessDOPageResult;
     }
@@ -145,6 +155,38 @@ public class OrderProcessServiceImpl implements OrderProcessService {
         LambdaUpdateWrapper<OrderProcessDO> updateWrapper = new LambdaUpdateWrapper<>();
         updateWrapper.eq(OrderProcessDO::getOrderNo, orderNo);
         updateWrapper.set(OrderProcessDO::getCurrentProcess, targetProcess);
+        updateWrapper.set(OrderProcessDO::getUpdateTime, LocalDateTime.now());
+        updateWrapper.set(OrderProcessDO::getUpdater, SecurityFrameworkUtils.getLoginUserId());
         orderProcessMapper.update(updateWrapper);
+    }
+
+    @Override
+    public void updateProcessToTargetProcess(OrderProcessSaveReqVO reqVO) {
+        boolean hasPermission = false;
+        //根据不同状态判断权限
+        if (ErpOrderCurrentProcessEnum.ORDER_CURRENT_PROCESS_3.getStatus().equals(reqVO.getCurrentProcess())) {
+            hasPermission = securityFrameworkService.hasPermission(
+                    PerConstants.ERP_ORDER_PROCESS_LAYOUT);
+        }
+        if (ErpOrderCurrentProcessEnum.ORDER_CURRENT_PROCESS_4.getStatus().equals(reqVO.getCurrentProcess())) {
+            hasPermission = securityFrameworkService.hasPermission(
+                    PerConstants.ERP_ORDER_PROCESS_PAPER);
+        }
+        if (ErpOrderCurrentProcessEnum.ORDER_CURRENT_PROCESS_5.getStatus().equals(reqVO.getCurrentProcess())) {
+            hasPermission = securityFrameworkService.hasPermission(
+                    PerConstants.ERP_ORDER_PROCESS_ROLLER);
+        }
+        if (ErpOrderCurrentProcessEnum.ORDER_CURRENT_PROCESS_6.getStatus().equals(reqVO.getCurrentProcess())) {
+            hasPermission = securityFrameworkService.hasPermission(
+                    PerConstants.ERP_ORDER_PROCESS_LASER);
+        }
+        if (ErpOrderCurrentProcessEnum.ORDER_CURRENT_PROCESS_7.getStatus().equals(reqVO.getCurrentProcess())) {
+            hasPermission = securityFrameworkService.hasPermission(
+                    PerConstants.ERP_ORDER_PROCESS_SHIP);
+        }
+        if (!hasPermission) {
+            throw exception(FORBIDDEN);
+        }
+        this.updateOrderProcess(reqVO);
     }
 }
