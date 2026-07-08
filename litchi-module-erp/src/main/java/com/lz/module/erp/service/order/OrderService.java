@@ -1,6 +1,9 @@
 package com.lz.module.erp.service.order;
 
 import java.util.*;
+
+import com.lz.module.erp.controller.admin.orderProcess.vo.OrderProcessSaveReqVO;
+import com.lz.module.erp.dal.dataobject.orderProcess.OrderProcessDO;
 import jakarta.validation.*;
 import com.lz.module.erp.controller.admin.order.vo.*;
 import com.lz.module.erp.dal.dataobject.order.OrderDO;
@@ -24,11 +27,26 @@ public interface OrderService {
     Long createOrder(@Valid OrderSaveReqVO createReqVO);
 
     /**
+     * 初始化订单信息 根据工序
+     *
+     * @param order          订单信息
+     * @param orderProcess 工序
+     */
+    void initOrderByProcess(OrderDO order, OrderProcessSaveReqVO orderProcess);
+
+    /**
      * 更新订单信息
      *
      * @param updateReqVO 更新信息
      */
     void updateOrder(@Valid OrderSaveReqVO updateReqVO);
+
+    /**
+     * 更新订单信息
+     *
+     * @param orderDO 订单信息
+     */
+    void updateOrder(OrderDO orderDO);
 
     /**
      * 删除订单信息
@@ -51,6 +69,14 @@ public interface OrderService {
      * @return 订单信息
      */
     OrderDO getOrder(Long id);
+
+    /**
+     * 获得订单信息
+     *
+     * @param orderNo 工单号
+     * @return 订单信息
+     */
+    OrderDO getOrderByOrderNo(String orderNo);
 
     /**
      * 获得订单信息分页

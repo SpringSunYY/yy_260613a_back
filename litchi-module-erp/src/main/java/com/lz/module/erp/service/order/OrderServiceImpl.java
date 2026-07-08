@@ -74,7 +74,8 @@ public class OrderServiceImpl implements OrderService {
         return order.getId();
     }
 
-    private void initOrderByProcess(OrderDO order, OrderProcessSaveReqVO orderProcess) {
+    @Override
+    public void initOrderByProcess(OrderDO order, OrderProcessSaveReqVO orderProcess) {
         order.setCurrentProcess(orderProcess.getCurrentProcess());
         order.setOrderImage(orderProcess.getOrderImage());
         order.setQrCode(orderProcess.getQrCode());
@@ -101,6 +102,11 @@ public class OrderServiceImpl implements OrderService {
         initOrderByProcess(updateObj, orderProcess);
         updateOrderProcess(orderDO.getOrderNo(), updateObj.getOrderNo(), orderProcess);
         orderMapper.updateById(updateObj);
+    }
+
+    @Override
+    public void updateOrder(OrderDO orderDO) {
+        orderMapper.updateById(orderDO);
     }
 
     /**
@@ -149,6 +155,13 @@ public class OrderServiceImpl implements OrderService {
     }
 
 
+    /**
+     * 校验订单信息是否存在
+     * Id校验不存在，工单号校验存在
+     * @param id      订单信息id
+     * @param orderNo 工单号
+     * @return 订单信息
+     */
     private OrderDO validateOrderExists(Long id, String orderNo) {
         //如果订单和id都不传过来
         if (ObjectUtil.isEmpty(id) && ObjectUtil.isEmpty(orderNo)) {
@@ -173,6 +186,11 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public OrderDO getOrder(Long id) {
         return orderMapper.selectById(id);
+    }
+
+    @Override
+    public OrderDO getOrderByOrderNo(String orderNo) {
+        return orderMapper.selectOne(OrderDO::getOrderNo, orderNo);
     }
 
     @Override
