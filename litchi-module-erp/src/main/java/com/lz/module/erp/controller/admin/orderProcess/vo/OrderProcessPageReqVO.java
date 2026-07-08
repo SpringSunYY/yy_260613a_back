@@ -8,6 +8,7 @@ import lombok.Data;
 import org.springframework.format.annotation.DateTimeFormat;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import static com.lz.framework.common.util.date.DateUtils.FORMAT_YEAR_MONTH_DAY_HOUR_MINUTE_SECOND;
 
@@ -21,10 +22,16 @@ import static com.lz.framework.common.util.date.DateUtils.FORMAT_YEAR_MONTH_DAY_
 public class OrderProcessPageReqVO extends PageParam {
 
     /**
-    * 当前工序
+    * 当前工序（精确匹配）
     */
     @Schema(description = "当前工序")
     private String currentProcess;
+
+    /**
+    * 当前工序排除列表（NOT IN），与 currentProcess 互斥
+    */
+    @Schema(description = "当前工序排除列表")
+    private List<String> notInCurrentProcesses;
 
     /**
     * 订单号

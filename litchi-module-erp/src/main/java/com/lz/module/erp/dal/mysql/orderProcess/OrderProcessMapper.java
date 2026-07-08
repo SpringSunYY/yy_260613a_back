@@ -20,6 +20,7 @@ public interface OrderProcessMapper extends BaseMapperX<OrderProcessDO> {
     default PageResult<OrderProcessDO> selectPage(OrderProcessPageReqVO reqVO) {
         return selectPage(reqVO, new LambdaQueryWrapperX<OrderProcessDO>()
                 .eqIfPresent(OrderProcessDO::getCurrentProcess, reqVO.getCurrentProcess())
+                .notInIfPresent(OrderProcessDO::getCurrentProcess, reqVO.getNotInCurrentProcesses())
                 .eqIfPresent(OrderProcessDO::getOrderNo, reqVO.getOrderNo())
                 .likeIfPresent(OrderProcessDO::getLayoutPerson, reqVO.getLayoutPerson())
                 .eqIfPresent(OrderProcessDO::getPattern, reqVO.getPattern())
