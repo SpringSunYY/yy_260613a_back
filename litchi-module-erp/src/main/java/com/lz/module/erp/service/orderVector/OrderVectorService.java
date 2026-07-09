@@ -1,6 +1,8 @@
 package com.lz.module.erp.service.orderVector;
 
 import java.util.*;
+
+import com.lz.module.erp.controller.admin.orderProcess.vo.OrderProcessSaveReqVO;
 import jakarta.validation.*;
 import com.lz.module.erp.controller.admin.orderVector.vo.*;
 import com.lz.module.erp.dal.dataobject.orderVector.OrderVectorDO;
@@ -60,4 +62,10 @@ public interface OrderVectorService {
     PageResult<OrderVectorDO> getOrderVectorPage(OrderVectorPageReqVO pageReqVO);
 
 
+    /**
+     * 索引订单向量
+     *
+     * @param reqVO 订单向量
+     */
+    void indexOrderVector(OrderProcessSaveReqVO reqVO);
 }

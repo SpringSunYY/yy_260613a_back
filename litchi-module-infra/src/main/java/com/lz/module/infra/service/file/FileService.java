@@ -26,15 +26,15 @@ public interface FileService {
     /**
      * 保存文件，并返回文件的访问路径（根据配置返回相对路径或绝对路径）
      *
-     * @param content   文件内容
-     * @param name      文件名称，允许空
-     * @param directory 目录，允许空
-     * @param type      文件的 MIME 类型，允许空
+     * @param content    文件内容
+     * @param name       文件名称，允许空
+     * @param directory  目录，允许空
+     * @param type       文件的 MIME 类型，允许空
      * @param moduleType 模块类型，允许空
      * @return 文件访问路径（相对路径或绝对路径）
      */
     FileUploadRespVO createFile(@NotEmpty(message = "文件内容不能为空") byte[] content,
-                      String name, String directory, String type, String moduleType);
+                                String name, String directory, String type, String moduleType);
 
     /**
      * 生成文件预签名地址信息
@@ -73,17 +73,27 @@ public interface FileService {
      * 获得文件内容
      *
      * @param configKey 配置key
-     * @param path       文件路径
+     * @param path      文件路径
      * @return 文件内容
      */
     byte[] getFileContent(String configKey, String path) throws Exception;
+
+    byte[] getFileContent(String path);
+
+    /**
+     * 根据 path 获得 FileConfigDO
+     *
+     * @param path 路径
+     * @return FileConfigDO
+     */
+    public String getFileConfigByPath(String path);
 
     /**
      * 构建文件访问的完整URL（用于重定向）
      *
      * @param configKey 配置key
-     * @param path       文件路径
-     * @param domain     域名（可选，为空时使用配置的域名）
+     * @param path      文件路径
+     * @param domain    域名（可选，为空时使用配置的域名）
      * @return 完整的文件访问URL
      */
     String buildFileAccessUrl(String configKey, String path, String domain);
@@ -100,9 +110,9 @@ public interface FileService {
     /**
      * 构建文件访问的完整URL（根据请求构建域名）
      *
-     * @param configKey 配置key
-     * @param path      文件路径
-     * @param scheme    请求协议
+     * @param configKey  配置key
+     * @param path       文件路径
+     * @param scheme     请求协议
      * @param serverName 服务器名称
      * @param serverPort 服务器端口
      * @return 完整的文件访问URL

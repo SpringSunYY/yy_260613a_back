@@ -40,5 +40,10 @@ public class OrderVectorDO extends BaseDO {
      */
     private String imageUrl;
 
+    /**
+     * 特征向量
+     */
+    private String featureVector;
+
 
 }

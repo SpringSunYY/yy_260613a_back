@@ -39,7 +39,7 @@ public final class MilvusCollectionTemplate {
                 .build());
         schema.addField(AddFieldReq.builder()
                 .fieldName(ORIGIN_KEY)
-                .dataType(DataType.Int64).build());
+                .dataType(DataType.VarChar).maxLength(200).build());
         schema.addField(AddFieldReq.builder()
                 .fieldName(TENANT_ID)
                 .dataType(DataType.Int64).build());

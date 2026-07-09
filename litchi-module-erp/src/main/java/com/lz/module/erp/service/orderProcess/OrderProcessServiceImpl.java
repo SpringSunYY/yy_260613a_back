@@ -10,7 +10,6 @@ import com.lz.framework.security.core.service.SecurityFrameworkService;
 import com.lz.framework.security.core.util.SecurityFrameworkUtils;
 import com.lz.module.erp.controller.admin.orderProcess.vo.OrderProcessPageReqVO;
 import com.lz.module.erp.controller.admin.orderProcess.vo.OrderProcessSaveReqVO;
-import com.lz.module.erp.controller.admin.orderProcess.vo.OrderProcessUpdateProcessReqVO;
 import com.lz.module.erp.controller.admin.orderProcessHistory.vo.OrderProcessHistorySaveReqVO;
 import com.lz.module.erp.dal.dataobject.order.OrderDO;
 import com.lz.module.erp.dal.dataobject.orderProcess.OrderProcessDO;
@@ -19,9 +18,11 @@ import com.lz.module.erp.enums.ErpOrderCurrentProcessEnum;
 import com.lz.module.erp.enums.PerConstants;
 import com.lz.module.erp.service.order.OrderService;
 import com.lz.module.erp.service.orderProcessHistory.OrderProcessHistoryService;
+import com.lz.module.erp.service.orderVector.OrderVectorService;
 import com.lz.module.system.api.user.AdminUserApi;
 import com.lz.module.system.api.user.dto.AdminUserSimpRespDTO;
 import jakarta.annotation.Resource;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
@@ -58,6 +59,11 @@ public class OrderProcessServiceImpl implements OrderProcessService {
     @Resource
     private SecurityFrameworkService securityFrameworkService;
 
+    @Resource
+    private ThreadPoolTaskExecutor executor;
+
+    @Resource
+    private OrderVectorService orderVectorService;
     @Override
     public Long createOrderProcess(OrderProcessSaveReqVO createReqVO) {
         // 插入
@@ -203,5 +209,9 @@ public class OrderProcessServiceImpl implements OrderProcessService {
         if (ObjUtil.isNull(orderDO.getShippingTime())) {
             throw exception(ORDER_NOT_SHIPPED);
         }
+        //异步去构建向量
+        executor.execute(()->{
+            orderVectorService.indexOrderVector(reqVO);
+        });
     }
 }

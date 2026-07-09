@@ -98,7 +98,7 @@ public class ImageIndexService {
     /**
      * @param collection 目标 Milvus 集合名（必填）
      */
-    public String index(String fileUrl, byte[] content, String collection) throws Exception {
+    public VectorRecord index(String fileUrl, byte[] content, String collection) throws Exception {
         return index(fileUrl, content, null, collection);
     }
 
@@ -106,7 +106,7 @@ public class ImageIndexService {
      * @param originKey     可选：上传场景时是 {@code infra_file.id}
      * @param collection 目标 Milvus 集合名（必填）
      */
-    public String index(String fileUrl, byte[] content, String originKey, String collection) throws Exception {
+    public VectorRecord index(String fileUrl, byte[] content, String originKey, String collection) throws Exception {
         checkEnabled("index");
         float[] vector = featureService().extract(content);
         String id = IdUtil.fastSimpleUUID();
@@ -116,7 +116,9 @@ public class ImageIndexService {
                 currentTenantId(),
                 System.currentTimeMillis()
         );
-        return milvusService().insertVector(record, collection);
+        //插入向量
+        milvusService().insertVector(record, collection);
+        return record;
     }
 
     // ==================== 批量索引 ====================

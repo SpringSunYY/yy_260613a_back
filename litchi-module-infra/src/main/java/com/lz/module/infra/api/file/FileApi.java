@@ -62,4 +62,9 @@ public interface FileApi {
      * @param path 文件路径
      */
     String getFilePath(@NotEmpty(message = "文件路径不能为空") String path);
+
+    /**
+     * 获取文件内容
+     */
+    byte[] getFileContent(@NotEmpty(message = "文件路径不能为空") String path);
 }

@@ -55,7 +55,8 @@ public class ImageSearchServiceImpl implements ImageSearchService {
 
     @Override
     public UploadRespVO uploadImage(String fileUrl, byte[] content, Long fileId, String collection) throws Exception {
-        String id = imageIndexService.index(fileUrl, content, fileId.toString(), collection);
+        String id = imageIndexService.index(fileUrl, content, fileId.toString(), collection)
+                .getId();
         return UploadRespVO.builder()
                 .id(id)
                 .url(fileUrl)

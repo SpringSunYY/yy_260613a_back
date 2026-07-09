@@ -48,5 +48,10 @@ public class FileApiImpl implements FileApi {
        return fileService.buildFileAccessUrl(configKey, filePath);
     }
 
+    @Override
+    public byte[] getFileContent(String path) {
+        return fileService.getFileContent(path);
+    }
+
 
 }

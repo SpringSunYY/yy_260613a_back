@@ -21,6 +21,7 @@ import com.lz.module.infra.framework.file.core.utils.FileTypeUtils;
 import com.lz.module.infra.framework.file.core.utils.FileValidationUtils;
 import jakarta.annotation.Resource;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -34,6 +35,7 @@ import static com.lz.module.infra.enums.ErrorCodeConstants.*;
  *
  * @author 荔枝源码
  */
+@Slf4j
 @Service
 public class FileServiceImpl implements FileService {
 
@@ -50,6 +52,12 @@ public class FileServiceImpl implements FileService {
      * 定制：可按需调整成 UUID、或者其他方式
      */
     static boolean PATH_SUFFIX_TIMESTAMP_ENABLE = true;
+
+    /**
+     * 文件访问路径前缀
+     */
+    private static final String PREFIX = "/admin-api/infra/file/";
+    private static final String SUFFIX = "/get/";
 
     @Resource
     private FileConfigService fileConfigService;
@@ -252,6 +260,45 @@ public class FileServiceImpl implements FileService {
         FileClient client = fileConfigService.getFileClient(configKey);
         Assert.notNull(client, "客户端({}) 不能为空", configKey);
         return client.getContent(path);
+    }
+
+    @Override
+    public byte[] getFileContent(String path) {
+        try {
+            String configKey = getFileConfigByPath(path);
+            path = StrUtil.subAfter(path, "/get/", false);
+            
+            return this.getFileContent(configKey, path);
+        } catch (Exception e) {
+            log.error("[getFileContent][path({}) 获得 FileConfigDO 失败]", path, e);
+            return null;
+        }
+    }
+
+    /**
+     * 根据 path 获得 FileConfigDO
+     *
+     * @param path 路径
+     * @return FileConfigDO
+     */
+    @Override
+    public String getFileConfigByPath(String path) {
+        //抽出文件key文件路径可能是以下两种,相对路径和全路径，其中，localhost和aliyun分别是key
+        ///admin-api/infra/file/localhost/get/2026/07/08/0e41fc368799f2f3f2fe17d2062d6295_1783494848052.jpg
+        //https://www.litchi.work/admin-api/infra/file/aliyun/get/2026/07/08/0e41fc368799f2f3f2fe17d2062d6295_1783494848052.jpg
+
+        int start = path.indexOf(PREFIX);
+        if (start == -1) {
+            throw new IllegalArgumentException("非法文件路径：" + path);
+        }
+        start += PREFIX.length();
+
+        int end = path.indexOf(SUFFIX, start);
+        if (end == -1) {
+            throw new IllegalArgumentException("非法文件路径：" + path);
+        }
+
+        return path.substring(start, end);
     }
 
     @Override
