@@ -1,6 +1,8 @@
 package com.lz.framework.vector.core.vector;
 
 import cn.hutool.core.util.IdUtil;
+import cn.hutool.core.util.StrUtil;
+import com.lz.framework.common.exception.util.ServiceExceptionUtil;
 import com.lz.framework.vector.config.EmbeddingProperties;
 import com.lz.framework.vector.config.MilvusProperties;
 import com.lz.framework.vector.core.exception.VectorDisabledException;
@@ -304,6 +306,22 @@ public class ImageIndexService {
         return milvusService().searchByVector(queryVector, topK, collection);
     }
 
+    public List<SearchResult> searchById(String id, int topK, String collection) {
+        if (StrUtil.isEmpty(id)) {
+            return new ArrayList<>();
+        }
+        // 先拿完整记录（含 vector），再以图搜图
+        List<VectorRecord> records =
+                queryByIds(Collections.singletonList(id), collection);
+        if (records.isEmpty() || records.getFirst() == null) {
+            new ArrayList<>();
+        }
+        float[] vec = records.getFirst().getVector();
+        if (vec == null || vec.length == 0) {
+            return new ArrayList<>();
+        }
+        return searchByVector(vec, topK, collection);
+    }
     /**
      * 按 id 列表查询完整向量记录（带 vector）。
      */

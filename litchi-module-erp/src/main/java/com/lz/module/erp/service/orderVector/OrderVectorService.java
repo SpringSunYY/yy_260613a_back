@@ -2,12 +2,15 @@ package com.lz.module.erp.service.orderVector;
 
 import java.util.*;
 
+import com.lz.framework.vector.pojo.SearchResult;
 import com.lz.module.erp.controller.admin.orderProcess.vo.OrderProcessSaveReqVO;
 import jakarta.validation.*;
 import com.lz.module.erp.controller.admin.orderVector.vo.*;
 import com.lz.module.erp.dal.dataobject.orderVector.OrderVectorDO;
 import com.lz.framework.common.pojo.PageResult;
 import com.lz.framework.common.pojo.PageParam;
+
+import java.io.InputStream;
 
 /**
  * 订单向量 Service 接口
@@ -68,4 +71,22 @@ public interface OrderVectorService {
      * @param reqVO 订单向量
      */
     void indexOrderVector(OrderProcessSaveReqVO reqVO);
+
+    /**
+     * 以图搜图（按库内向量 id）
+     *
+     * @param id   库内向量编号（erp_order_vector.vectorId）
+     * @param topK Top K
+     * @return 相似结果
+     */
+    List<SearchResult> searchById(String id, Integer topK) throws Exception;
+
+    /**
+     * 以图搜图（按上传的图片字节流）
+     *
+     * @param inputStream 查询图输入流（方法内部会关闭）
+     * @param topK        Top K
+     * @return 相似结果
+     */
+    List<SearchResult> searchByUpload(InputStream inputStream, Integer topK) throws Exception;
 }

@@ -581,20 +581,7 @@ public class ImageSearchServiceImpl implements ImageSearchService {
 
     @Override
     public List<SearchResult> searchById(String id, int topK, String collection) throws Exception {
-        if (StrUtil.isEmpty(id)) {
-            throw ServiceExceptionUtil.exception(ErrorCodeConstants.VECTOR_IMAGE_NOT_EXISTS);
-        }
-        // 先拿完整记录（含 vector），再以图搜图
-        List<VectorRecord> records =
-                imageIndexService.queryByIds(Collections.singletonList(id), collection);
-        if (records.isEmpty() || records.getFirst() == null) {
-            throw ServiceExceptionUtil.exception(ErrorCodeConstants.VECTOR_IMAGE_NOT_EXISTS, id);
-        }
-        float[] vec = records.getFirst().getVector();
-        if (vec == null || vec.length == 0) {
-            throw ServiceExceptionUtil.exception(ErrorCodeConstants.VECTOR_IMAGE_VECTOR_EMPTY, id);
-        }
-        return imageIndexService.searchByVector(vec, topK, collection);
+        return imageIndexService.searchById(id, topK, collection);
     }
 
     @Override

@@ -6,10 +6,12 @@ import com.lz.framework.common.pojo.PageParam;
 import com.lz.framework.common.pojo.PageResult;
 import com.lz.framework.common.util.object.BeanUtils;
 import com.lz.framework.excel.core.util.ExcelUtils;
+import com.lz.framework.vector.pojo.SearchResult;
 import com.lz.module.erp.controller.admin.orderVector.vo.OrderVectorExcelVO;
 import com.lz.module.erp.controller.admin.orderVector.vo.OrderVectorPageReqVO;
 import com.lz.module.erp.controller.admin.orderVector.vo.OrderVectorRespVO;
 import com.lz.module.erp.controller.admin.orderVector.vo.OrderVectorSaveReqVO;
+import com.lz.module.erp.controller.admin.orderVector.vo.OrderVectorSearchReqVO;
 import com.lz.module.erp.dal.dataobject.orderVector.OrderVectorDO;
 import com.lz.module.erp.service.orderVector.OrderVectorService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -126,5 +128,28 @@ public class OrderVectorController {
                         BeanUtils.toBean(list, OrderVectorExcelVO.class));
     }
 
+    /**
+     * 以图搜图（按库内向量 id）
+     */
+    @GetMapping("/search")
+    @Operation(summary = "订单向量以图搜图（按库内向量编号）")
+    @Parameter(name = "id", description = "库内向量编号（erp_order_vector.vectorId）", required = true)
+    @PreAuthorize("@ss.hasPermission('erp:order-vector:query')")
+    public CommonResult<List<SearchResult>> searchOrderVectorById(@RequestParam("id") String id,
+                                                                   @Valid OrderVectorSearchReqVO reqVO) throws Exception {
+        return success(orderVectorService.searchById(id, reqVO.getTopK()));
+    }
+
+    /**
+     * 以图搜图（按上传的图片）
+     */
+    @PostMapping("/search/upload")
+    @Operation(summary = "订单向量以图搜图（按上传图片）")
+    @PreAuthorize("@ss.hasPermission('erp:order-vector:query')")
+    public CommonResult<List<SearchResult>> searchOrderVectorByUpload(@Valid OrderVectorSearchReqVO reqVO)
+            throws Exception {
+        return success(orderVectorService.searchByUpload(
+                reqVO.getFile().getInputStream(), reqVO.getTopK()));
+    }
 
 }

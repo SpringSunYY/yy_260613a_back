@@ -7,6 +7,7 @@ import com.lz.framework.common.pojo.PageResult;
 import com.lz.framework.common.util.object.BeanUtils;
 import com.lz.framework.vector.constants.CollectionConstants;
 import com.lz.framework.vector.core.vector.ImageIndexService;
+import com.lz.framework.vector.pojo.SearchResult;
 import com.lz.framework.vector.pojo.VectorRecord;
 import com.lz.module.erp.controller.admin.orderProcess.vo.OrderProcessSaveReqVO;
 import com.lz.module.erp.controller.admin.orderVector.vo.OrderVectorPageReqVO;
@@ -14,11 +15,13 @@ import com.lz.module.erp.controller.admin.orderVector.vo.OrderVectorSaveReqVO;
 import com.lz.module.erp.dal.dataobject.orderVector.OrderVectorDO;
 import com.lz.module.erp.dal.mysql.orderVector.OrderVectorMapper;
 import com.lz.module.infra.api.file.FileApi;
+import com.lz.module.infra.service.vector.ImageSearchService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -44,6 +47,9 @@ public class OrderVectorServiceImpl implements OrderVectorService {
 
     @Resource
     private FileApi fileApi;
+
+    @Resource
+    private ImageSearchService imageSearchService;
 
     @Override
     public Long createOrderVector(OrderVectorSaveReqVO createReqVO) {
@@ -138,5 +144,23 @@ public class OrderVectorServiceImpl implements OrderVectorService {
         }
         if (vectorDOS.isEmpty()) return;
         orderVectorMapper.insertBatch(vectorDOS);
+    }
+
+    @Override
+    public List<SearchResult> searchById(String id, Integer topK) throws Exception {
+        if (StrUtil.isEmpty(id)) {
+            return List.of();
+        }
+        return imageSearchService.searchById(id, topK == null ? 10 : topK,
+                CollectionConstants.ERP_ORDER_IMAGE_VECTOR);
+    }
+
+    @Override
+    public List<SearchResult> searchByUpload(InputStream inputStream, Integer topK) throws Exception {
+        if (inputStream == null) {
+            return List.of();
+        }
+        return imageSearchService.searchByStream(inputStream, topK == null ? 10 : topK,
+                CollectionConstants.ERP_ORDER_IMAGE_VECTOR);
     }
 }
