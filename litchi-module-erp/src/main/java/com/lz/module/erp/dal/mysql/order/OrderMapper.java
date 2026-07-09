@@ -26,7 +26,6 @@ public interface OrderMapper extends BaseMapperX<OrderDO> {
                 .eqIfPresent(OrderDO::getOrderStatus, reqVO.getOrderStatus())
                 .eqIfPresent(OrderDO::getAuditStatus, reqVO.getAuditStatus())
                 .eqIfPresent(OrderDO::getCurrentProcess, reqVO.getCurrentProcess())
-                .betweenIfPresent(OrderDO::getShipmentTime, reqVO.getShipmentTime())
                 .likeIfPresent(OrderDO::getCustomer, reqVO.getCustomer())
                 .eqIfPresent(OrderDO::getSpecification, reqVO.getSpecification())
                 .eqIfPresent(OrderDO::getPattern, reqVO.getPattern())

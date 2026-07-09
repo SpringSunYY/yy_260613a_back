@@ -62,11 +62,6 @@ public class OrderRespVO {
     @Schema(description = "当前工序", requiredMode = Schema.RequiredMode.REQUIRED)
     private String currentProcess;
 
-    /**
-     * 出货日期
-     */
-    @Schema(description = "出货日期")
-    private LocalDateTime shipmentTime;
 
     /**
      * 客户

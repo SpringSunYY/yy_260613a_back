@@ -88,13 +88,6 @@ public class OrderExcelVO {
     @I18nNotEmpty(i18nKey = "erp.order.back.currentProcess.notEmpty", message = "当前工序不能为空")
     private String currentProcess;
 
-    /**
-    * 出货日期
-    */
-    @ExcelProperty(value = "出货日期")
-    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    @ExcelI18n(i18nKey = "erp.order.field.shipmentTime")
-    private LocalDateTime shipmentTime;
 
     /**
     * 客户

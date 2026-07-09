@@ -1,5 +1,6 @@
 package com.lz.module.erp.service.orderProcess;
 
+import cn.hutool.core.util.ObjUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.dynamic.datasource.annotation.DSTransactional;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
@@ -31,7 +32,7 @@ import java.util.stream.Collectors;
 
 import static com.lz.framework.common.exception.enums.GlobalErrorCodeConstants.FORBIDDEN;
 import static com.lz.framework.common.exception.util.ServiceExceptionUtil.exception;
-import static com.lz.module.erp.enums.ErrorCodeConstants.ORDER_PROCESS_NOT_EXISTS;
+import static com.lz.module.erp.enums.ErrorCodeConstants.*;
 
 /**
  * 订单工序 Service 实现类
@@ -183,10 +184,24 @@ public class OrderProcessServiceImpl implements OrderProcessService {
         if (ErpOrderCurrentProcessEnum.ORDER_CURRENT_PROCESS_7.getStatus().equals(reqVO.getCurrentProcess())) {
             hasPermission = securityFrameworkService.hasPermission(
                     PerConstants.ERP_ORDER_PROCESS_SHIP);
+            //需要判断是否已经发货
+            validateOrderShip(reqVO);
         }
         if (!hasPermission) {
             throw exception(FORBIDDEN);
         }
         this.updateOrderProcess(reqVO);
+    }
+
+    private void validateOrderShip(OrderProcessSaveReqVO reqVO) {
+        //查询订单
+        OrderDO orderDO = orderService.getOrderByOrderNo(reqVO.getOrderNo());
+        if (ObjUtil.isNull(orderDO)) {
+            throw exception(ORDER_NOT_EXISTS);
+        }
+        //如果还没有发货
+        if (ObjUtil.isNull(orderDO.getShippingTime())) {
+            throw exception(ORDER_NOT_SHIPPED);
+        }
     }
 }

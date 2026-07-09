@@ -69,11 +69,6 @@ public class OrderPageReqVO extends PageParam {
     /**
     * 出货日期
     */
-    @Sortable(value = "shipment_time")
-    @I18nSize(i18nKey = "erp.order.back.shipmentTime.size", min = 0, max = 2, message = "出货日期长度不能超过2")
-    @Schema(description = "出货日期")
-    @DateTimeFormat(pattern = FORMAT_YEAR_MONTH_DAY_HOUR_MINUTE_SECOND)
-    private LocalDateTime[] shipmentTime;
 
     /**
     * 客户

@@ -49,6 +49,12 @@ public interface OrderService {
     void updateOrder(OrderDO orderDO);
 
     /**
+     * 订单发货
+     */
+    void shipOrder(@Valid OrderShipReqVO shipReqVO);
+
+
+    /**
      * 删除订单信息
      *
      * @param id 编号

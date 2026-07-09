@@ -75,11 +75,6 @@ public class OrderSaveReqVO {
 //    @I18nNotEmpty(i18nKey = "erp.order.back.currentProcess.notEmpty", message = "当前工序不能为空")
     private String currentProcess;
 
-    /**
-     * 出货日期
-     */
-    @Schema(description = "出货日期")
-    private LocalDateTime shipmentTime;
 
     /**
      * 客户

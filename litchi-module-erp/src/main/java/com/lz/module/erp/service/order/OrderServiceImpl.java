@@ -6,10 +6,7 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.lz.framework.common.pojo.PageResult;
 import com.lz.framework.common.util.object.BeanUtils;
 import com.lz.framework.common.util.object.ObjectUtils;
-import com.lz.module.erp.controller.admin.order.vo.OrderAuditReqVO;
-import com.lz.module.erp.controller.admin.order.vo.OrderDetailSaveReqVO;
-import com.lz.module.erp.controller.admin.order.vo.OrderPageReqVO;
-import com.lz.module.erp.controller.admin.order.vo.OrderSaveReqVO;
+import com.lz.module.erp.controller.admin.order.vo.*;
 import com.lz.module.erp.controller.admin.orderProcess.vo.OrderProcessSaveReqVO;
 import com.lz.module.erp.dal.dataobject.order.OrderDO;
 import com.lz.module.erp.dal.dataobject.order.OrderDetailDO;
@@ -115,6 +112,13 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public void updateOrder(OrderDO orderDO) {
         orderMapper.updateById(orderDO);
+    }
+
+    @Override
+    public void shipOrder(OrderShipReqVO shipReqVO) {
+        // 校验存在
+        OrderDO orderDO = validateOrderExists(shipReqVO.getId(), shipReqVO.getOrderNo());
+        orderMapper.updateById(BeanUtils.toBean(shipReqVO, OrderDO.class));
     }
 
     /**

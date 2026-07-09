@@ -68,10 +68,6 @@ public class OrderDO extends BaseDO {
      */
     private String currentProcess;
     /**
-     * 出货日期
-     */
-    private LocalDateTime shipmentTime;
-    /**
      * 客户
      */
     private String customer;
