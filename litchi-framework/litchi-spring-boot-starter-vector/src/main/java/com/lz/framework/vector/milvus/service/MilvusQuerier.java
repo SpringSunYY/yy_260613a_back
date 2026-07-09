@@ -160,7 +160,7 @@ public class MilvusQuerier {
                     .filter(buildIdInExpr(ids))
                     .outputFields(Arrays.asList(
                             PRIMARY_KEY, IMAGE_PATH, FEATURE_VEC,
-                            FILE_ID, TENANT_ID, CREATE_TIME))
+                            ORIGIN_KEY, TENANT_ID, CREATE_TIME))
                     .build();
             QueryResp resp = client.query(req);
             return extractor.extractVectorRecords(resp, ids);
@@ -188,7 +188,7 @@ public class MilvusQuerier {
                     .collectionName(collection)
                     .outputFields(Arrays.asList(
                             PRIMARY_KEY, IMAGE_PATH,
-                            FILE_ID, TENANT_ID, CREATE_TIME))
+                            ORIGIN_KEY, TENANT_ID, CREATE_TIME))
                     .limit(sampleSize)
                     .build();
             QueryResp resp = client.query(req);
@@ -261,7 +261,7 @@ public class MilvusQuerier {
 
     private static List<String> outFields(boolean withVector) {
         List<String> list = new ArrayList<>(Arrays.asList(
-                PRIMARY_KEY, IMAGE_PATH, FILE_ID, TENANT_ID, CREATE_TIME));
+                PRIMARY_KEY, IMAGE_PATH, ORIGIN_KEY, TENANT_ID, CREATE_TIME));
         if (withVector) list.add(FEATURE_VEC);
         return list;
     }

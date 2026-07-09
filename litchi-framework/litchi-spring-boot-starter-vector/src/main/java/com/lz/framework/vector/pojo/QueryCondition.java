@@ -32,7 +32,7 @@ public final class QueryCondition {
 
     /** MilvusService 中允许作为查询字段的 schema 字段名白名单 */
     public static final List<String> QUERYABLE_FIELDS = List.of(
-            "id", "image_path", "file_id", "tenant_id", "create_time"
+            "id", "image_path", "origin_key", "tenant_id", "create_time"
     );
 
     private final List<Clause> clauses;

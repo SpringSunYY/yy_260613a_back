@@ -12,8 +12,8 @@ import lombok.Data;
 public class SearchHit {
     private String id;
     private String imagePath;
-    /** 关联的 infra_file.id */
-    private Long fileId;
+    /** 关联的 原Id，第三方键 */
+    private String originKey;
     /** 租户编号 */
     private Long tenantId;
     /** 入库时间戳（毫秒） */

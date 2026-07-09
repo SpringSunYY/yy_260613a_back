@@ -28,7 +28,9 @@ public class MilvusRecordMapper {
         if (r.getImagePath() != null) {
             row.addProperty(IMAGE_PATH, r.getImagePath());
         }
-        row.addProperty(FILE_ID, sentinel(r.getFileId()));
+        if (r.getOriginKey() != null){
+            row.addProperty(ORIGIN_KEY, r.getOriginKey());
+        }
         row.addProperty(TENANT_ID, sentinel(r.getTenantId()));
         row.addProperty(CREATE_TIME, r.getCreateTime());
         if (r.getVector() != null && r.getVector().length > 0) {

@@ -43,7 +43,7 @@ public class MilvusResultExtractor {
         if (entity != null) {
             copyScalar(entity, sr);
         }
-        float rawScore = (float) hit.getScore();
+        float rawScore = hit.getScore();
         sr.setScore(rawScore);
         sr.setSimilarity(String.format("%.2f%%", Math.clamp(rawScore, 0f, 1f) * 100f));
         return sr;
@@ -94,8 +94,8 @@ public class MilvusResultExtractor {
             Object pathObj = entity.get(IMAGE_PATH);
             if (pathObj != null) rec.setImagePath(pathObj.toString());
             rec.setVector(readFloatArray(entity.get(FEATURE_VEC)));
-            Object fidObj = entity.get(FILE_ID);
-            if (fidObj instanceof Number n) rec.setFileId(n.longValue());
+            Object originKeyObj = entity.get(ORIGIN_KEY);
+            if (originKeyObj != null) rec.setOriginKey(originKeyObj.toString());
             Object tidObj = entity.get(TENANT_ID);
             if (tidObj instanceof Number n) rec.setTenantId(n.longValue());
             Object tsObj = entity.get(CREATE_TIME);
@@ -109,7 +109,9 @@ public class MilvusResultExtractor {
 
     // ==================== QueryResp → 样本 Map ====================
 
-    /** 把 QueryResp 转成不含向量的"展示样本"列表 */
+    /**
+     * 把 QueryResp 转成不含向量的"展示样本"列表
+     */
     public List<Map<String, Object>> extractSamples(QueryResp resp) {
         List<Map<String, Object>> samples = new ArrayList<>();
         if (resp == null || resp.getQueryResults() == null) {
@@ -121,14 +123,14 @@ public class MilvusResultExtractor {
             Map<String, Object> item = new java.util.HashMap<>();
             Object idObj = entity.get(PRIMARY_KEY);
             Object pathObj = entity.get(IMAGE_PATH);
-            Object fidObj = entity.get(FILE_ID);
+            Object originKeyObj = entity.get(ORIGIN_KEY);
             Object tidObj = entity.get(TENANT_ID);
             Object tsObj = entity.get(CREATE_TIME);
-            item.put("id", idObj == null ? "" : idObj.toString());
-            item.put("imagePath", pathObj == null ? null : pathObj.toString());
-            if (fidObj instanceof Number n) item.put("fileId", n.longValue());
-            if (tidObj instanceof Number n) item.put("tenantId", n.longValue());
-            if (tsObj instanceof Number n) item.put("createTime", n.longValue());
+            item.put(PRIMARY_KEY_CLASS, idObj == null ? "" : idObj.toString());
+            item.put(IMAGE_PATH_CLASS, pathObj == null ? null : pathObj.toString());
+            item.put(ORIGIN_KEY_CLASS, originKeyObj == null ? null : originKeyObj.toString());
+            if (tidObj instanceof Number n) item.put(TENANT_ID_CLASS, n.longValue());
+            if (tsObj instanceof Number n) item.put(CREATE_TIME_CLASS, n.longValue());
             samples.add(item);
         }
         return samples;
@@ -141,8 +143,8 @@ public class MilvusResultExtractor {
         if (idObj != null) r.setId(idObj.toString());
         Object pathObj = entity.get(IMAGE_PATH);
         if (pathObj != null) r.setImagePath(pathObj.toString());
-        Object fidObj = entity.get(FILE_ID);
-        if (fidObj instanceof Number n) r.setFileId(n.longValue());
+        Object originKeyObj = entity.get(ORIGIN_KEY);
+        if (originKeyObj != null) r.setOriginKey(originKeyObj.toString());
         Object tidObj = entity.get(TENANT_ID);
         if (tidObj instanceof Number n) r.setTenantId(n.longValue());
         Object tsObj = entity.get(CREATE_TIME);
@@ -152,12 +154,16 @@ public class MilvusResultExtractor {
     private static void copyScalar(Map<String, Object> entity, SearchResult s) {
         Object id = entity.get(PRIMARY_KEY);
         if (id != null) s.setId(id.toString());
+
         Object path = entity.get(IMAGE_PATH);
         if (path != null) s.setImagePath(path.toString());
-        Object fid = entity.get(FILE_ID);
-        if (fid instanceof Number n) s.setFileId(n.longValue());
+
+        Object originKey = entity.get(ORIGIN_KEY);
+        if (originKey != null) s.setOriginKey(originKey.toString());
+
         Object tid = entity.get(TENANT_ID);
         if (tid instanceof Number n) s.setTenantId(n.longValue());
+
         Object ts = entity.get(CREATE_TIME);
         if (ts instanceof Number n) s.setCreateTime(n.longValue());
     }

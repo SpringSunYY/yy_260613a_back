@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
  * <p>作为服务层与 Milvus 持久层之间的<b>传输对象</b>。
  * <ul>
  *   <li>{@link MilvusService} 不关心此实体，只知道要把行写入 Milvus 集合，
- *       对<b>业务层</b> imagePath/fileId 字段。至于 id、何种 vector 算法，服务层只负责 CRUD。</li>
+ *       对<b>业务层</b> imagePath/originKey 字段。至于 id、何种 vector 算法，服务层只负责 CRUD。</li>
  *   <li>业务层（如 {@link ImageIndexService}）将"业务要装到 VectorRecord"加工出来，
  *       写什么字段是业务层自己的事。</li>
  * </ul>
@@ -20,7 +20,7 @@ import lombok.NoArgsConstructor;
  *   id              VarChar        主键
  *   image_path      VarChar        业务字段，只存字符串，不存文件
  *   feature_vector  FloatVector    归一化向量
- *   file_id         Int64          关联 infra_file.id
+ *   origin_key         Int64          关联 infra_file.id
  *   tenant_id       Int64          多租户隔离字段（由 MilvusService 内部填充）
  *   create_time     Int64          入库时间戳（毫秒）
  * </pre>
@@ -41,14 +41,14 @@ public class VectorRecord {
 
     /**
      * 关联的 infra_file.id。
-     * <p>调用方可为空（如目录导入场景没有 fileId 记录）。
+     * <p>调用方可为空（如目录导入场景没有 originKey 记录）。
      * <p><b>持久化层哨兵</b>：{@link MilvusService} 写库时会自动把 {@code null} 映射成 {@code 0L}。
      * 因为 milvus-sdk-java 2.4.5 不支持 {@code withNullable}（2.5.0 才有），
      * 且 {@code ParamUtils.checkFieldData} 对 Int64 列一律拒 null，所以 schema 上无法声明 nullable，
      * 只能用 {@code 0L} 作为"无关联文件"的业务哨兵。查询侧收到的是 {@code 0L}；
      * 调用方应将 {@code null} 与 {@code 0L} 都视为"无关联文件"。
      */
-    private Long fileId;
+    private String originKey;
 
     /**
      * 租户编号。

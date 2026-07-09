@@ -7,6 +7,7 @@ import cn.hutool.http.HttpRequest;
 import com.lz.framework.common.exception.ErrorCode;
 import com.lz.framework.common.exception.util.ServiceExceptionUtil;
 import com.lz.framework.common.pojo.PageResult;
+import com.lz.framework.vector.constants.MilvusFieldConstants;
 import com.lz.framework.vector.core.vector.ImageIndexService;
 import com.lz.framework.vector.pojo.QueryCondition;
 import com.lz.framework.vector.pojo.QueryResult;
@@ -54,7 +55,7 @@ public class ImageSearchServiceImpl implements ImageSearchService {
 
     @Override
     public UploadRespVO uploadImage(String fileUrl, byte[] content, Long fileId, String collection) throws Exception {
-        String id = imageIndexService.index(fileUrl, content, fileId, collection);
+        String id = imageIndexService.index(fileUrl, content, fileId.toString(), collection);
         return UploadRespVO.builder()
                 .id(id)
                 .url(fileUrl)
@@ -352,24 +353,24 @@ public class ImageSearchServiceImpl implements ImageSearchService {
         QueryCondition.Builder builder = QueryCondition.builder();
         boolean hasCondition = false;
         if (StrUtil.isNotEmpty(pageReqVO.getId())) {
-            builder.eq("id", pageReqVO.getId().trim());
+            builder.eq(MilvusFieldConstants.PRIMARY_KEY, pageReqVO.getId().trim());
             hasCondition = true;
         }
         if (StrUtil.isNotEmpty(pageReqVO.getImagePath())) {
-            builder.contains("image_path", pageReqVO.getImagePath().trim());
+            builder.contains(MilvusFieldConstants.IMAGE_PATH, pageReqVO.getImagePath().trim());
             hasCondition = true;
         }
         if (pageReqVO.getFileId() != null) {
-            builder.eq("file_id", pageReqVO.getFileId());
+            builder.eq(MilvusFieldConstants.ORIGIN_KEY, pageReqVO.getFileId());
             hasCondition = true;
         }
         if (pageReqVO.getCreateTime() != null && pageReqVO.getCreateTime().length == 2) {
             if (pageReqVO.getCreateTime()[0] != null) {
-                builder.gte("create_time", LocalDateTimeUtil.toEpochMilli(pageReqVO.getCreateTime()[0]));
+                builder.gte(MilvusFieldConstants.CREATE_TIME, LocalDateTimeUtil.toEpochMilli(pageReqVO.getCreateTime()[0]));
                 hasCondition = true;
             }
             if (pageReqVO.getCreateTime()[1] != null) {
-                builder.lte("create_time", LocalDateTimeUtil.toEpochMilli(pageReqVO.getCreateTime()[1]));
+                builder.lte(MilvusFieldConstants.CREATE_TIME, LocalDateTimeUtil.toEpochMilli(pageReqVO.getCreateTime()[1]));
                 hasCondition = true;
             }
         }
@@ -380,7 +381,7 @@ public class ImageSearchServiceImpl implements ImageSearchService {
         if (hasCondition) {
             cond = builder.build();
         } else {
-            cond = QueryCondition.builder().gt("create_time", 0L).build();
+            cond = QueryCondition.builder().gt(MilvusFieldConstants.CREATE_TIME, 0L).build();
         }
 
         // 3. Milvus 的 v1 SDK 不支持 offset（在 SDK 2.4.5 上 QueryParam 没有 withOffset），
@@ -422,16 +423,20 @@ public class ImageSearchServiceImpl implements ImageSearchService {
             return new PageResult<>(Collections.emptyList(), total);
         }
         int fromIdx = (int) offset;
-        int toIdx = (int) Math.min(fromIdx + pageSize, all.size());
+        int toIdx = Math.min(fromIdx + pageSize, all.size());
         List<QueryResult> pageList = all.subList(fromIdx, toIdx);
 
         // 6. 转成 VectorImageRespVO
         List<VectorImageRespVO> list = new ArrayList<>(pageList.size());
         for (QueryResult r : pageList) {
+            Long fileId = null;
+            if (StrUtil.isNotEmpty(r.getOriginKey())) {
+                fileId = Long.valueOf(r.getOriginKey());
+            }
             list.add(VectorImageRespVO.builder()
                     .id(r.getId())
                     .imagePath(r.getImagePath())
-                    .fileId(r.getFileId())
+                    .fileId(fileId)
                     .tenantId(r.getTenantId())
                     .createTime(r.getCreateTime())
                     .build());
@@ -450,10 +455,14 @@ public class ImageSearchServiceImpl implements ImageSearchService {
         List<QueryResult> results = imageIndexService.queryByCondition(cond, false, ids.size(), collection);
         List<VectorImageRespVO> list = new ArrayList<>(results.size());
         for (QueryResult r : results) {
+            Long fileId = null;
+            if (StrUtil.isNotEmpty(r.getOriginKey())) {
+                fileId = Long.valueOf(r.getOriginKey());
+            }
             list.add(VectorImageRespVO.builder()
                     .id(r.getId())
                     .imagePath(r.getImagePath())
-                    .fileId(r.getFileId())
+                    .fileId(fileId)
                     .tenantId(r.getTenantId())
                     .createTime(r.getCreateTime())
                     .build());
@@ -511,7 +520,7 @@ public class ImageSearchServiceImpl implements ImageSearchService {
         Set<String> seenIds = new HashSet<>();
         int batchSize = 1000;
         // 与 getImagePage 同源的"恒真表达式"，避免空条件校验
-        QueryCondition cond = QueryCondition.builder().gt("create_time", 0L).build();
+        QueryCondition cond = QueryCondition.builder().gt(MilvusFieldConstants.CREATE_TIME, 0L).build();
         while (true) {
             List<QueryResult> batch = imageIndexService.queryByCondition(cond, false, batchSize, collection);
             if (CollectionUtils.isEmpty(batch)) {
@@ -542,7 +551,10 @@ public class ImageSearchServiceImpl implements ImageSearchService {
         }
         Set<Long> fileIdSet = new LinkedHashSet<>();
         for (QueryResult r : records) {
-            Long fid = r.getFileId();
+            Long fid = null;
+            if (StrUtil.isNotEmpty(r.getOriginKey())) {
+                fid = Long.valueOf(r.getOriginKey());
+            }
             // 0L / null 视为未关联 infra_file，不需要清理
             if (fid != null && fid > 0L) {
                 fileIdSet.add(fid);
@@ -577,7 +589,7 @@ public class ImageSearchServiceImpl implements ImageSearchService {
         if (records.isEmpty() || records.getFirst() == null) {
             throw ServiceExceptionUtil.exception(ErrorCodeConstants.VECTOR_IMAGE_NOT_EXISTS, id);
         }
-        float[] vec = records.get(0).getVector();
+        float[] vec = records.getFirst().getVector();
         if (vec == null || vec.length == 0) {
             throw ServiceExceptionUtil.exception(ErrorCodeConstants.VECTOR_IMAGE_VECTOR_EMPTY, id);
         }

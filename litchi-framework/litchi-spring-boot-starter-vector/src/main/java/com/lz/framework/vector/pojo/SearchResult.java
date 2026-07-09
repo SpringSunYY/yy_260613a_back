@@ -18,9 +18,9 @@ public class SearchResult {
      */
     private String imagePath;
     /**
-     * 业务字段：关联 infra_file.id
+     * 关联的 原Id，第三方键
      */
-    private Long fileId;
+    private String originKey;
     /**
      * 租户编号
      */

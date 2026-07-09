@@ -7,7 +7,7 @@ import lombok.Data;
  * 字段查询结果（不含向量的轻量视图）。
  *
  * <p>用于 {@code queryById / queryByPath / queryByCondition} 这类
- * "按业务字段精确查记录" 的场景——调用方关心 id/imagePath/fileId/createTime，
+ * "按业务字段精确查记录" 的场景——调用方关心 id/imagePath/originKey/createTime，
  * 不需要 feature_vector。
  *
  * <p>向量字段只在 {@code queryByIds}（需要重算相似度时）或
@@ -18,8 +18,8 @@ public class QueryResult {
 
     private String id;
     private String imagePath;
-    /** 关联的 infra_file.id */
-    private Long fileId;
+    /** 关联的 原Id，第三方键 */
+    private String originKey;
     /** 租户编号 */
     private Long tenantId;
     /** 入库时间戳（毫秒） */

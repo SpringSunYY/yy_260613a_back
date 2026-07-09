@@ -19,29 +19,39 @@ public final class MilvusFieldConstants {
     public static final String PRIMARY_KEY = "id";
 
     /**
+     * 主键字段，class
+     */
+    public static final String PRIMARY_KEY_CLASS = "id";
+
+    /**
      * 图片路径（VarChar / 500）
      */
     public static final String IMAGE_PATH = "image_path";
+    public static final String IMAGE_PATH_CLASS = "imagePath";
 
     /**
      * 特征向量（FloatVector）
      */
     public static final String FEATURE_VEC = "feature_vector";
+    public static final String FEATURE_VEC_CLASS = "featureVector";
 
     /**
      * 业务文件 ID（Int64）
      */
-    public static final String FILE_ID = "file_id";
+    public static final String ORIGIN_KEY = "origin_key";
+    public static final String ORIGIN_KEY_CLASS = "originKey";
 
     /**
      * 租户 ID（Int64）
      */
     public static final String TENANT_ID = "tenant_id";
+    public static final String TENANT_ID_CLASS = "tenantId";
 
     /**
      * 创建时间戳（Int64, epoch millis）
      */
     public static final String CREATE_TIME = "create_time";
+    public static final String CREATE_TIME_CLASS = "createTime";
 
     /**
      * HNSW 索引在 search 阶段的 ef 取值

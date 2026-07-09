@@ -103,16 +103,16 @@ public class ImageIndexService {
     }
 
     /**
-     * @param fileId     可选：上传场景时是 {@code infra_file.id}
+     * @param originKey     可选：上传场景时是 {@code infra_file.id}
      * @param collection 目标 Milvus 集合名（必填）
      */
-    public String index(String fileUrl, byte[] content, Long fileId, String collection) throws Exception {
+    public String index(String fileUrl, byte[] content, String originKey, String collection) throws Exception {
         checkEnabled("index");
         float[] vector = featureService().extract(content);
         String id = IdUtil.fastSimpleUUID();
         VectorRecord record = new VectorRecord(
                 id, fileUrl, vector,
-                fileId,
+                originKey,
                 currentTenantId(),
                 System.currentTimeMillis()
         );
@@ -137,10 +137,10 @@ public class ImageIndexService {
     }
 
     /**
-     * @param fileId     可选：所有记录共享同一 fileId
+     * @param originKey     可选：所有记录共享同一 originKey
      * @param collection 目标 Milvus 集合名（必填）
      */
-    public List<String> indexBatch(List<String> imagePaths, int batchSize, Long fileId, String collection) throws Exception {
+    public List<String> indexBatch(List<String> imagePaths, int batchSize, String originKey, String collection) throws Exception {
         checkEnabled("indexBatch");
         if (imagePaths == null || imagePaths.isEmpty()) {
             log.info("[批量索引] 0 张，跳过");
@@ -197,7 +197,7 @@ public class ImageIndexService {
             float[] v = vectors.get(k);
             if (v == null || v.length == 0) continue;
             String id = generateImageId(imagePaths.get(k));
-            records.add(new VectorRecord(id, imagePaths.get(k), v, fileId, currentTenantId(), now));
+            records.add(new VectorRecord(id, imagePaths.get(k), v, originKey, currentTenantId(), now));
         }
         if (records.isEmpty()) {
             log.warn("[批量索引] 全部失败，0 张入库");

@@ -53,7 +53,7 @@ public class MilvusSearcher {
                 .searchParams(Map.of("ef", HNSW_SEARCH_EF))
                 .consistencyLevel(io.milvus.v2.common.ConsistencyLevel.BOUNDED)
                 .outputFields(Arrays.asList(
-                        IMAGE_PATH, FILE_ID, TENANT_ID, CREATE_TIME))
+                        IMAGE_PATH, ORIGIN_KEY, TENANT_ID, CREATE_TIME))
                 .build();
 
         SearchResp resp = client.search(req);
