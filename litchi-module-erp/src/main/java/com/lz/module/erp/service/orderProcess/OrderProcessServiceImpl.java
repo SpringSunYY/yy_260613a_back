@@ -77,30 +77,27 @@ public class OrderProcessServiceImpl implements OrderProcessService {
 
     @Override
     @DSTransactional
-    public void updateOrderProcess(OrderProcessSaveReqVO updateReqVO) {
+    public void updateOrderProcess(OrderProcessSaveReqVO reqVO) {
+        //必须要有图片
         // 校验存在
-        OrderProcessDO orderProcessDO = validateOrderProcessExists(updateReqVO.getId());
+        OrderProcessDO processDO = validateOrderProcessExists(reqVO.getId());
         //校验订单是否存在
-        OrderDO orderDO = orderService.validateOrderExistsByNo(orderProcessDO.getOrderNo());
+        OrderDO orderDO = orderService.validateOrderExistsByNo(processDO.getOrderNo());
 
         //判断冗余数据是否一致，如果不一致要更新订单的数据
-        if (!ObjUtil.equal(orderProcessDO.getCurrentProcess(), orderDO.getCurrentProcess())
-                || (StrUtil.isNotBlank(orderProcessDO.getOrderImage()) && StrUtil.isNotBlank(orderDO.getOrderImage()) && !orderProcessDO.getOrderImage().equals(orderDO.getOrderImage()))
-                || (StrUtil.isNotBlank(orderProcessDO.getQrCode()) && StrUtil.isNotBlank(orderDO.getQrCode()) && !orderProcessDO.getQrCode().equals(orderDO.getQrCode()))
-                || (StrUtil.isNotBlank(orderProcessDO.getPattern()) && !orderProcessDO.getPattern().equals(orderDO.getPattern()))
-                || (StrUtil.isNotBlank(orderProcessDO.getFabric()) && !orderProcessDO.getFabric().equals(orderDO.getFabric()))
-                || (StrUtil.isNotBlank(orderProcessDO.getSpecification()) && !orderProcessDO.getSpecification().equals(orderDO.getSpecification()))) {
-            orderService.initOrderByProcess(orderDO, BeanUtils.toBean(orderProcessDO, OrderProcessSaveReqVO.class));
+        if (isRedundantDataChanged(processDO, orderDO, reqVO)) {
+            orderService.initOrderByProcess(orderDO, BeanUtils.toBean(processDO, OrderProcessSaveReqVO.class));
             orderService.updateOrder(orderDO);
         }
         //判断工序是否一致
-        if (!ObjUtil.equal(orderProcessDO.getCurrentProcess(), updateReqVO.getCurrentProcess())) {
-            createProcessHistory(updateReqVO.getOrderNo(), updateReqVO.getCurrentProcess(), orderProcessDO.getCurrentProcess());
+        if (!ObjUtil.equal(processDO.getCurrentProcess(), reqVO.getCurrentProcess())) {
+            createProcessHistory(reqVO.getOrderNo(), processDO.getCurrentProcess(), reqVO.getCurrentProcess());
         }
         // 更新
-        orderProcessMapper.updateById(orderProcessDO);
+        orderProcessMapper.updateById(BeanUtils.toBean(reqVO, OrderProcessDO.class));
 
     }
+
 
 
     @Override
@@ -215,9 +212,44 @@ public class OrderProcessServiceImpl implements OrderProcessService {
         if (ObjUtil.isNull(orderDO.getShippingTime())) {
             throw exception(ORDER_NOT_SHIPPED);
         }
+        //判断是否有图片
+        if (StrUtil.isEmpty(reqVO.getOrderImage())) {
+            throw exception(ORDER_NOT_ORDER_IMAGE);
+        }
         //异步去构建向量
         executor.execute(() -> {
             orderVectorService.indexOrderVector(reqVO);
         });
+    }
+
+    /**
+     * 判断工序/订单中的冗余字段是否与请求数据不一致
+     */
+    private boolean isRedundantDataChanged(OrderProcessDO processDO, OrderDO orderDO, OrderProcessSaveReqVO reqVO) {
+        return isRedundantChanged(processDO.getCurrentProcess(), processDO.getOrderImage(), processDO.getQrCode(),
+                processDO.getPattern(), processDO.getFabric(), processDO.getSpecification(), reqVO)
+                || isRedundantChanged(orderDO.getCurrentProcess(), orderDO.getOrderImage(), orderDO.getQrCode(),
+                orderDO.getPattern(), orderDO.getFabric(), orderDO.getSpecification(), reqVO);
+    }
+
+    /**
+     * 判断任意冗余字段是否发生变化（数据库有值 且 与请求值不同）
+     */
+    private boolean isRedundantChanged(String currentProcess, String orderImage, String qrCode,
+                                       String pattern, String fabric, String specification,
+                                       OrderProcessSaveReqVO reqVO) {
+        return isFieldChanged(currentProcess, reqVO.getCurrentProcess())
+                || isFieldChanged(orderImage, reqVO.getOrderImage())
+                || isFieldChanged(qrCode, reqVO.getQrCode())
+                || isFieldChanged(pattern, reqVO.getPattern())
+                || isFieldChanged(fabric, reqVO.getFabric())
+                || isFieldChanged(specification, reqVO.getSpecification());
+    }
+
+    /**
+     * 单个字段变化判断：数据库有值且与请求值不同
+     */
+    private boolean isFieldChanged(String dbValue, String reqValue) {
+        return StrUtil.isNotEmpty(dbValue) && !reqValue.equals(dbValue);
     }
 }
