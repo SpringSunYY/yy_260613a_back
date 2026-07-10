@@ -34,4 +34,9 @@ public class DictDataRespDTO {
      */
     private String i18n;
 
+    /**
+     * 排序
+     */
+    private Integer sort;
+
 }

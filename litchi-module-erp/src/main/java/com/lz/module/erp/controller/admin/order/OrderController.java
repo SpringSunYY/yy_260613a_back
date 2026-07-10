@@ -101,7 +101,7 @@ public class OrderController {
     @DeleteMapping("/delete-list")
     @Parameter(name = "ids", description = "编号", required = true)
     @Operation(summary = "批量删除订单信息")
-                @PreAuthorize("@ss.hasPermission('erp:order:delete')")
+    @PreAuthorize("@ss.hasPermission('erp:order:delete')")
     public CommonResult<Boolean> deleteOrderList(@RequestParam("ids") List<Long> ids) {
         orderService.deleteOrderListByIds(ids);
         return success(true);
@@ -124,7 +124,7 @@ public class OrderController {
      */
     @GetMapping("/get/no")
     @Operation(summary = "获得订单信息-no")
-    @Parameter(name="orderNo",description = "订单编号",required = true,example = "orderNo")
+    @Parameter(name = "orderNo", description = "订单编号", required = true, example = "orderNo")
     @PreAuthorize("@ss.hasPermission('erp:order:query')")
     public CommonResult<OrderRespVO> getOrderByNo(@RequestParam("orderNo") String orderNo) {
         OrderDO order = orderService.getOrderByOrderNo(orderNo);
@@ -146,6 +146,17 @@ public class OrderController {
     }
 
     /**
+     * 获取待发货订单信息分页
+     */
+    @GetMapping("/ship/page")
+    @Operation(summary = "获得订单信息分页")
+    @PreAuthorize("@ss.hasPermission('erp:order:query')")
+    public CommonResult<PageResult<OrderRespVO>> getShipOrderPage(@Valid OrderPageReqVO pageReqVO) {
+        PageResult<OrderDO> pageResult = orderService.getShipOrderPage(pageReqVO);
+        return success(BeanUtils.toBean(pageResult, OrderRespVO.class));
+    }
+
+    /**
      * 导出订单信息 Excel
      */
     @GetMapping("/export-excel")
@@ -153,12 +164,12 @@ public class OrderController {
     @PreAuthorize("@ss.hasPermission('erp:order:export')")
     @ApiAccessLog(operateType = EXPORT)
     public void exportOrderExcel(@Valid OrderPageReqVO pageReqVO,
-              HttpServletResponse response) throws IOException {
+                                 HttpServletResponse response) throws IOException {
         pageReqVO.setPageSize(PageParam.PAGE_SIZE_NONE);
         List<OrderDO> list = orderService.getOrderPage(pageReqVO).getList();
         // 导出 Excel
         ExcelUtils.write(response, "订单信息.xls", "数据", OrderExcelVO.class,
-                        BeanUtils.toBean(list, OrderExcelVO.class));
+                BeanUtils.toBean(list, OrderExcelVO.class));
     }
 
 

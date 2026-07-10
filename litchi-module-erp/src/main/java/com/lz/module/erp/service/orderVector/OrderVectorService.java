@@ -3,6 +3,7 @@ package com.lz.module.erp.service.orderVector;
 import java.util.*;
 
 import com.lz.framework.vector.pojo.SearchResult;
+import com.lz.module.erp.controller.admin.order.vo.OrderShipReqVO;
 import com.lz.module.erp.controller.admin.orderProcess.vo.OrderProcessSaveReqVO;
 import jakarta.validation.*;
 import com.lz.module.erp.controller.admin.orderVector.vo.*;
@@ -67,10 +68,10 @@ public interface OrderVectorService {
 
     /**
      * 索引订单向量
-     *
-     * @param reqVO 订单向量
+     * @Param orderNo 订单号
+     * @Param imageUrls 订单图片地址
      */
-    void indexOrderVector(OrderProcessSaveReqVO reqVO);
+    void indexOrderVector(String orderNo,String imageUrls);
 
     /**
      * 以图搜图（按库内向量 id）

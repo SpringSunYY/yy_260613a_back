@@ -19,6 +19,7 @@ public interface ErrorCodeConstants {
     ErrorCode ORDER_NOT_SHIPPED = new ErrorCode(1_003_000_002, "erp.order.back.notShipped", "订单未发货");
     ErrorCode ORDER_NO_NOT_EQUALS= new ErrorCode(1_003_000_002, "erp.order.back.orderNoNotEquals", "订单号不一致");
     ErrorCode ORDER_NOT_ORDER_IMAGE= new ErrorCode(1_003_000_002, "erp.orderProcess.back.orderImage.notEmpty", "订单未上传图片");
+    ErrorCode ORDER_AUDIT_STATUS_NO_APPROVE = new ErrorCode(1_003_000_002, "erp.order.back.status.notApprove", "订单审核尚且通过，不可操作");
     // ========== 导入通用错误码（可自行配置国际化） ==========
     ErrorCode ORDER_IMPORT_DATA_EMPTY = new ErrorCode(1_003_000_100, "erp.back.import.dataEmpty", "订单信息导入数据不能为空！");
 

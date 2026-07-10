@@ -1,15 +1,16 @@
 package com.lz.module.erp.service.order;
 
-import java.util.*;
-
+import com.lz.framework.common.pojo.PageResult;
+import com.lz.module.erp.controller.admin.order.vo.OrderAuditReqVO;
+import com.lz.module.erp.controller.admin.order.vo.OrderPageReqVO;
+import com.lz.module.erp.controller.admin.order.vo.OrderSaveReqVO;
+import com.lz.module.erp.controller.admin.order.vo.OrderShipReqVO;
 import com.lz.module.erp.controller.admin.orderProcess.vo.OrderProcessSaveReqVO;
-import com.lz.module.erp.dal.dataobject.orderProcess.OrderProcessDO;
-import jakarta.validation.*;
-import com.lz.module.erp.controller.admin.order.vo.*;
 import com.lz.module.erp.dal.dataobject.order.OrderDO;
 import com.lz.module.erp.dal.dataobject.order.OrderDetailDO;
-import com.lz.framework.common.pojo.PageResult;
-import com.lz.framework.common.pojo.PageParam;
+import jakarta.validation.Valid;
+
+import java.util.List;
 
 /**
  * 订单信息 Service 接口
@@ -51,7 +52,7 @@ public interface OrderService {
     /**
      * 订单发货
      */
-    void shipOrder(@Valid OrderShipReqVO shipReqVO);
+    void shipOrder( OrderShipReqVO shipReqVO);
 
 
     /**
@@ -99,6 +100,14 @@ public interface OrderService {
      * @return 订单信息分页
      */
     PageResult<OrderDO> getOrderPage(OrderPageReqVO pageReqVO);
+
+    /**
+     * 获得待发货订单信息分页
+     *
+     * @param pageReqVO 分页查询
+     * @return 订单信息分页
+     */
+    PageResult<OrderDO> getShipOrderPage(@Valid OrderPageReqVO pageReqVO);
 
     /**
      * 提交审核订单信息

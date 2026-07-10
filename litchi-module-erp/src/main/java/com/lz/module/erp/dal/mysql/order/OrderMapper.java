@@ -1,13 +1,12 @@
 package com.lz.module.erp.dal.mysql.order;
 
-import java.util.*;
-
 import com.lz.framework.common.pojo.PageResult;
-import com.lz.framework.mybatis.core.query.LambdaQueryWrapperX;
 import com.lz.framework.mybatis.core.mapper.BaseMapperX;
+import com.lz.framework.mybatis.core.query.LambdaQueryWrapperX;
+import com.lz.module.erp.controller.admin.order.vo.OrderPageReqVO;
 import com.lz.module.erp.dal.dataobject.order.OrderDO;
+import com.lz.module.erp.enums.ErpOrderAuditStatusEnum;
 import org.apache.ibatis.annotations.Mapper;
-import com.lz.module.erp.controller.admin.order.vo.*;
 
 /**
  * 订单信息 Mapper
@@ -18,7 +17,12 @@ import com.lz.module.erp.controller.admin.order.vo.*;
 public interface OrderMapper extends BaseMapperX<OrderDO> {
 
     default PageResult<OrderDO> selectPage(OrderPageReqVO reqVO) {
-        return selectPage(reqVO, new LambdaQueryWrapperX<OrderDO>()
+        LambdaQueryWrapperX<OrderDO> queryWrapper = builderQueryWrapper(reqVO);
+        return selectPage(reqVO, queryWrapper);
+    }
+
+    default LambdaQueryWrapperX<OrderDO> builderQueryWrapper(OrderPageReqVO reqVO) {
+        return new LambdaQueryWrapperX<OrderDO>()
                 .likeIfPresent(OrderDO::getName, reqVO.getName())
                 .eqIfPresent(OrderDO::getOrderNo, reqVO.getOrderNo())
                 .betweenIfPresent(OrderDO::getOrderTime, reqVO.getOrderTime())
@@ -37,7 +41,13 @@ public interface OrderMapper extends BaseMapperX<OrderDO> {
                 .betweenIfPresent(OrderDO::getShippingTime, reqVO.getShippingTime())
                 .eqIfPresent(OrderDO::getPrintStatus, reqVO.getPrintStatus())
                 .betweenIfPresent(OrderDO::getCreateTime, reqVO.getCreateTime())
-                .applyOrderDesc(reqVO, OrderDO::getId));
+                .applyOrderDesc(reqVO, OrderDO::getId);
     }
 
+    default PageResult<OrderDO> selectShipPage(OrderPageReqVO pageReqVO) {
+        LambdaQueryWrapperX<OrderDO> queryWrapperX = builderQueryWrapper(pageReqVO);
+        queryWrapperX.isNull(OrderDO::getShippingTime);
+        queryWrapperX.eq(OrderDO::getAuditStatus, ErpOrderAuditStatusEnum.ORDER_AUDIT_STATUS_3.getStatus());
+        return selectPage(pageReqVO, queryWrapperX);
+    }
 }

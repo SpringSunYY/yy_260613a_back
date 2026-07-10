@@ -1,8 +1,13 @@
 package com.lz.module.erp.service.order;
 
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.util.ObjUtil;
 import cn.hutool.core.util.ObjectUtil;
+import cn.hutool.core.util.StrUtil;
+import com.baomidou.dynamic.datasource.annotation.DSTransactional;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.lz.framework.common.biz.system.dict.DictDataCommonApi;
+import com.lz.framework.common.biz.system.dict.dto.DictDataRespDTO;
 import com.lz.framework.common.pojo.PageResult;
 import com.lz.framework.common.util.object.BeanUtils;
 import com.lz.framework.common.util.object.ObjectUtils;
@@ -14,19 +19,24 @@ import com.lz.module.erp.dal.dataobject.orderProcess.OrderProcessDO;
 import com.lz.module.erp.dal.mysql.order.OrderDetailMapper;
 import com.lz.module.erp.dal.mysql.order.OrderMapper;
 import com.lz.module.erp.dal.mysql.orderProcess.OrderProcessMapper;
+import com.lz.module.erp.enums.ErpDictTypeConstants;
 import com.lz.module.erp.enums.ErpOrderAuditStatusEnum;
 import com.lz.module.erp.enums.ErpOrderCurrentProcessEnum;
 import com.lz.module.erp.enums.ErpOrderPrintStatusEnum;
 import com.lz.module.erp.service.orderProcess.OrderProcessService;
+import com.lz.module.erp.service.orderVector.OrderVectorService;
 import com.lz.module.system.api.user.AdminUserApi;
 import com.lz.module.system.api.user.dto.AdminUserSimpRespDTO;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.NonNull;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -57,6 +67,14 @@ public class OrderServiceImpl implements OrderService {
     @Resource
     @Lazy
     private OrderProcessService orderProcessService;
+    @Resource
+    private ThreadPoolTaskExecutor executor;
+
+    @Resource
+    private OrderVectorService orderVectorService;
+
+    @Resource
+    private DictDataCommonApi dictDataCommonApi;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -101,7 +119,7 @@ public class OrderServiceImpl implements OrderService {
     @Transactional(rollbackFor = Exception.class)
     public void updateOrder(OrderSaveReqVO updateReqVO) {
         // 校验存在
-        OrderDO orderDO = validateOrderExists(updateReqVO.getId(),null);
+        OrderDO orderDO = validateOrderExists(updateReqVO.getId(), null);
         //如果两个订单号不一样，不可以修改订单号
         if (!orderDO.getOrderNo().equals(updateReqVO.getOrderNo())) {
             throw exception(ORDER_NO_NOT_EQUALS);
@@ -113,7 +131,7 @@ public class OrderServiceImpl implements OrderService {
         //更新工序
         OrderProcessSaveReqVO orderProcess = updateReqVO.getOrderProcess();
         initOrderByProcess(orderDO, orderProcess);
-        updateOrderProcess(orderDO.getOrderNo(),  orderProcess);
+        updateOrderProcess(orderDO.getOrderNo(), orderProcess);
     }
 
     @Override
@@ -122,16 +140,19 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    @DSTransactional(rollbackFor = Exception.class)
     public void shipOrder(OrderShipReqVO shipReqVO) {
-        // 校验存在
-        OrderDO orderDO = validateOrderExists(shipReqVO.getId(), shipReqVO.getOrderNo());
+        shipReqVO.setCurrentProcess(ErpOrderCurrentProcessEnum.ORDER_CURRENT_PROCESS_7.getStatus());
+        orderProcessService.updateOrderProcess(BeanUtils.toBean(shipReqVO, OrderProcessSaveReqVO.class));
         orderMapper.updateById(BeanUtils.toBean(shipReqVO, OrderDO.class));
+        //需要判断是否已经发货，并且构建向量
+        validateOrderShip(shipReqVO);
     }
 
     /**
      * 更新工序
      *
-     * @param orderNo        订单号
+     * @param orderNo      订单号
      * @param orderProcess 工序
      */
     private void updateOrderProcess(String orderNo, OrderProcessSaveReqVO orderProcess) {
@@ -140,7 +161,7 @@ public class OrderServiceImpl implements OrderService {
         if (ObjectUtils.isNull(orderProcessDO)) {
             orderProcess.setCurrentProcess(ErpOrderCurrentProcessEnum.ORDER_CURRENT_PROCESS_1.getStatus());
             orderProcessMapper.insert(BeanUtils.toBean(orderProcess, OrderProcessDO.class));
-            return ;
+            return;
         }
         //赋值id
         orderProcess.setId(orderProcessDO.getId());
@@ -173,6 +194,7 @@ public class OrderServiceImpl implements OrderService {
     /**
      * 校验订单信息是否存在，这里返回的还是根据id查询的订单信息
      * Id校验不存在，工单号校验存在
+     *
      * @param id      订单信息id
      * @param orderNo 工单号
      * @return 订单信息
@@ -200,6 +222,7 @@ public class OrderServiceImpl implements OrderService {
 
     /**
      * 校验订单信息是否存在
+     *
      * @param orderNo 工单号
      * @return 订单信息
      */
@@ -225,6 +248,16 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public PageResult<OrderDO> getOrderPage(OrderPageReqVO pageReqVO) {
         PageResult<OrderDO> orderDOPageResult = orderMapper.selectPage(pageReqVO);
+        return buildPageResult(orderDOPageResult);
+    }
+
+    @Override
+    public PageResult<OrderDO> getShipOrderPage(OrderPageReqVO pageReqVO) {
+        PageResult<OrderDO> orderDOPageResult = orderMapper.selectShipPage(pageReqVO);
+        return buildPageResult(orderDOPageResult);
+    }
+
+    private @NonNull PageResult<OrderDO> buildPageResult(PageResult<OrderDO> orderDOPageResult) {
         //构建创建人
         //提取所有的创建人
         List<String> creatorIds = orderDOPageResult.getList()
@@ -234,7 +267,7 @@ public class OrderServiceImpl implements OrderService {
         Map<String, AdminUserSimpRespDTO> userSimpMap = userSimpList.stream()
                 .collect(Collectors.toMap(AdminUserSimpRespDTO::getId, v -> v));
         orderDOPageResult.getList().forEach(orderDO -> {
-            orderDO.setCreator(userSimpMap.getOrDefault(orderDO.getCreator(),new AdminUserSimpRespDTO()).getNickname());
+            orderDO.setCreator(userSimpMap.getOrDefault(orderDO.getCreator(), new AdminUserSimpRespDTO()).getNickname());
         });
         return orderDOPageResult;
     }
@@ -259,7 +292,12 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public List<OrderDetailDO> getOrderDetailListByOrderNo(String orderNo) {
-        return orderDetailMapper.selectListByOrderNo(orderNo);
+        List<OrderDetailDO> orderDetailDOS = orderDetailMapper.selectListByOrderNo(orderNo);
+        List<DictDataRespDTO> dataList = dictDataCommonApi.getDictDataList(ErpDictTypeConstants.ERP_SET_SIZE);
+        Map<String, Integer> sortMap = dataList.stream()
+                .collect(Collectors.toMap(DictDataRespDTO::getValue, DictDataRespDTO::getSort));
+        orderDetailDOS.sort(Comparator.comparingInt(o -> sortMap.getOrDefault(o.getSetSize(), Integer.MAX_VALUE)));
+        return orderDetailDOS;
     }
 
     private int createOrderDetailList(String orderNo, List<OrderDetailSaveReqVO> list) {
@@ -308,4 +346,23 @@ public class OrderServiceImpl implements OrderService {
         orderDetailMapper.deleteByOrderNos(orderNos);
     }
 
+    private void validateOrderShip(OrderShipReqVO reqVO) {
+        //查询订单
+        OrderDO orderDO = this.getOrderByOrderNo(reqVO.getOrderNo());
+        if (ObjUtil.isNull(orderDO)) {
+            throw exception(ORDER_NOT_EXISTS);
+        }
+        //如果还没有发货
+        if (ObjUtil.isNull(orderDO.getShippingTime())) {
+            throw exception(ORDER_NOT_SHIPPED);
+        }
+        //判断是否有图片
+        if (StrUtil.isEmpty(reqVO.getOrderImage())) {
+            throw exception(ORDER_NOT_ORDER_IMAGE);
+        }
+        //异步去构建向量
+        executor.execute(() -> {
+            orderVectorService.indexOrderVector(reqVO.getOrderNo(), reqVO.getOrderImage());
+        });
+    }
 }

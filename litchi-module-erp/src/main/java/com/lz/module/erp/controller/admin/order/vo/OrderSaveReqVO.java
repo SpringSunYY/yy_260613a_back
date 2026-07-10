@@ -32,7 +32,6 @@ public class OrderSaveReqVO {
      */
     @Schema(description = "订单名称", requiredMode = Schema.RequiredMode.REQUIRED, example = "李四")
     @I18nNotEmpty(i18nKey = "erp.order.back.name.notEmpty", message = "订单名称不能为空")
-    @DiffLogField(name = "订单名称")
     private String name;
 
     /**
@@ -47,7 +46,6 @@ public class OrderSaveReqVO {
      */
     @Schema(description = "下单日期", requiredMode = Schema.RequiredMode.REQUIRED)
     @I18nNotNull(i18nKey = "erp.order.back.orderTime.notNull", message = "下单日期不能为空")
-    @DiffLogField(name = "下单日期")
     private LocalDateTime orderTime;
 
     /**
@@ -55,7 +53,6 @@ public class OrderSaveReqVO {
      */
     @Schema(description = "订单来源", requiredMode = Schema.RequiredMode.REQUIRED)
     @I18nNotEmpty(i18nKey = "erp.order.back.orderResource.notEmpty", message = "订单来源不能为空")
-    @DiffLogField(name = "订单来源")
     private String orderResource;
 
     /**
@@ -63,7 +60,6 @@ public class OrderSaveReqVO {
      */
     @Schema(description = "订单状态", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @I18nNotEmpty(i18nKey = "erp.order.back.orderStatus.notEmpty", message = "订单状态不能为空")
-    @DiffLogField(name = "订单状态")
     private String orderStatus;
 
     /**
@@ -85,7 +81,6 @@ public class OrderSaveReqVO {
      * 客户
      */
     @Schema(description = "客户")
-    @DiffLogField(name = "客户")
     private String customer;
 
     /**
@@ -125,7 +120,6 @@ public class OrderSaveReqVO {
      */
     @Schema(description = "数量", requiredMode = Schema.RequiredMode.REQUIRED)
     @I18nNotNull(i18nKey = "erp.order.back.number.notNull", message = "数量不能为空")
-    @DiffLogField(name = "数量")
     private Integer number;
 
     /**
@@ -133,14 +127,12 @@ public class OrderSaveReqVO {
      */
     @Schema(description = "提货方式", requiredMode = Schema.RequiredMode.REQUIRED)
     @I18nNotEmpty(i18nKey = "erp.order.back.pickupMethod.notEmpty", message = "提货方式不能为空")
-    @DiffLogField(name = "提货方式")
     private String pickupMethod;
 
     /**
      * 发货地址
      */
     @Schema(description = "发货地址")
-    @DiffLogField(name = "发货地址")
     private String shippingAddress;
 
     /**
@@ -148,21 +140,18 @@ public class OrderSaveReqVO {
      */
     @Schema(description = "预计发货时间", requiredMode = Schema.RequiredMode.REQUIRED)
     @I18nNotNull(i18nKey = "erp.order.back.exceptShippingTime.notNull", message = "预计发货时间不能为空")
-    @DiffLogField(name = "预计发货时间")
     private LocalDateTime exceptShippingTime;
 
     /**
      * 发货订单
      */
     @Schema(description = "发货订单")
-    @DiffLogField(name = "发货订单号")
     private String shippingNo;
 
     /**
      * 发货时间
      */
     @Schema(description = "发货时间")
-    @DiffLogField(name = "发货时间")
     private LocalDateTime shippingTime;
 
     /**
@@ -170,21 +159,18 @@ public class OrderSaveReqVO {
      */
     @Schema(description = "打印状态", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
 //    @I18nNotEmpty(i18nKey = "erp.order.back.printStatus.notEmpty", message = "打印状态不能为空")
-    @DiffLogField(name = "打印状态")
     private String printStatus;
 
     /**
      * 补水
      */
     @Schema(description = "补水")
-    @DiffLogField(name = "补水")
     private String hydration;
 
     /**
      * 备注
      */
     @Schema(description = "备注", example = "随便")
-    @DiffLogField(name = "备注")
     private String remark;
 
     /**

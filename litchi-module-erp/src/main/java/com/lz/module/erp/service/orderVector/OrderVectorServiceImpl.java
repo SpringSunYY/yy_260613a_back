@@ -105,19 +105,18 @@ public class OrderVectorServiceImpl implements OrderVectorService {
     }
 
     @Override
-    public void indexOrderVector(OrderProcessSaveReqVO reqVO) {
-        String orderImage = reqVO.getOrderImage();
-        if (StrUtil.isEmpty(orderImage)) {
+    public void indexOrderVector(String orderNo,String imageUrls) {
+        if (StrUtil.isEmpty(imageUrls)) {
             return;
         }
         //首先查询是否已经为订单的某张
         // 图片构建向量
         List<OrderVectorDO> orderVectorDOS = orderVectorMapper.selectList(new LambdaQueryWrapper<OrderVectorDO>()
-                .eq(OrderVectorDO::getOrderNo, reqVO.getOrderNo()));
+                .eq(OrderVectorDO::getOrderNo, orderNo));
         //转换为地址列表
         List<String> imageUrlDos = orderVectorDOS.stream().map(OrderVectorDO::getImageUrl).toList();
         //使用分隔符||分割文件
-        String[] orderImages = orderImage.split("\\|\\|");
+        String[] orderImages = imageUrls.split("\\|\\|");
         //过滤出尚未构建向量的图片地址
         List<String> newImages = Arrays.stream(orderImages)
                 .filter(img -> !imageUrlDos.contains(img))
@@ -129,17 +128,17 @@ public class OrderVectorServiceImpl implements OrderVectorService {
         //为新图片构建向量并保存
         for (String imageUrl : newImages) {
             OrderVectorDO orderVector = new OrderVectorDO();
-            orderVector.setOrderNo(reqVO.getOrderNo());
+            orderVector.setOrderNo(orderNo);
             orderVector.setImageUrl(imageUrl);
             byte[] fileContent = fileApi.getFileContent(imageUrl);
             try {
                 VectorRecord vectorRecord = imageIndexService.index(imageUrl, fileContent,
-                        reqVO.getOrderNo(), CollectionConstants.ERP_ORDER_IMAGE_VECTOR);
+                        orderNo, CollectionConstants.ERP_ORDER_IMAGE_VECTOR);
                 orderVector.setFeatureVector(Arrays.toString(vectorRecord.getVector()));
                 orderVector.setVectorId(vectorRecord.getId());
                 vectorDOS.add(orderVector);
             } catch (Exception e) {
-                log.error("erp-订单工序构建向量失败，订单号：{},异常：{}", reqVO.getOrderNo(), e.getMessage());
+                log.error("erp-订单工序构建向量失败，订单号：{},异常：{}", orderNo, e.getMessage());
             }
         }
         if (vectorDOS.isEmpty()) return;

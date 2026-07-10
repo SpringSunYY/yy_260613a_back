@@ -28,7 +28,7 @@ public interface OrderProcessService {
      *
      * @param updateReqVO 更新信息
      */
-    void updateOrderProcess(@Valid OrderProcessSaveReqVO updateReqVO);
+    void updateOrderProcess(OrderProcessSaveReqVO updateReqVO);
 
     /**
      * 删除订单工序

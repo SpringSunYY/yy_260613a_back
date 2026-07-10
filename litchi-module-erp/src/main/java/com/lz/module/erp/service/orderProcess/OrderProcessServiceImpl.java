@@ -14,6 +14,7 @@ import com.lz.module.erp.controller.admin.orderProcessHistory.vo.OrderProcessHis
 import com.lz.module.erp.dal.dataobject.order.OrderDO;
 import com.lz.module.erp.dal.dataobject.orderProcess.OrderProcessDO;
 import com.lz.module.erp.dal.mysql.orderProcess.OrderProcessMapper;
+import com.lz.module.erp.enums.ErpOrderAuditStatusEnum;
 import com.lz.module.erp.enums.ErpOrderCurrentProcessEnum;
 import com.lz.module.erp.enums.PerConstants;
 import com.lz.module.erp.service.order.OrderService;
@@ -59,11 +60,6 @@ public class OrderProcessServiceImpl implements OrderProcessService {
     @Resource
     private SecurityFrameworkService securityFrameworkService;
 
-    @Resource
-    private ThreadPoolTaskExecutor executor;
-
-    @Resource
-    private OrderVectorService orderVectorService;
 
     @Override
     public Long createOrderProcess(OrderProcessSaveReqVO createReqVO) {
@@ -83,19 +79,22 @@ public class OrderProcessServiceImpl implements OrderProcessService {
         OrderProcessDO processDO = validateOrderProcessExists(reqVO.getId());
         //校验订单是否存在
         OrderDO orderDO = orderService.validateOrderExistsByNo(processDO.getOrderNo());
-
+        // 如果订单还没有审核通过
+        if (!orderDO.getAuditStatus().equals(ErpOrderAuditStatusEnum.ORDER_AUDIT_STATUS_3.getStatus())) {
+            throw exception(ORDER_AUDIT_STATUS_NO_APPROVE);
+        }
         //判断冗余数据是否一致，如果不一致要更新订单的数据
         if (isRedundantDataChanged(processDO, orderDO, reqVO)) {
             orderService.initOrderByProcess(orderDO, BeanUtils.toBean(processDO, OrderProcessSaveReqVO.class));
             orderService.updateOrder(orderDO);
         }
         //判断工序是否一致
-        if (!ObjUtil.equal(processDO.getCurrentProcess(), reqVO.getCurrentProcess())) {
+        if (isFieldChanged(reqVO.getCurrentProcess(), orderDO.getCurrentProcess())
+                ||isFieldChanged(reqVO.getCurrentProcess(), processDO.getCurrentProcess())) {
             createProcessHistory(reqVO.getOrderNo(), processDO.getCurrentProcess(), reqVO.getCurrentProcess());
         }
         // 更新
         orderProcessMapper.updateById(BeanUtils.toBean(reqVO, OrderProcessDO.class));
-
     }
 
 
@@ -193,33 +192,11 @@ public class OrderProcessServiceImpl implements OrderProcessService {
         if (ErpOrderCurrentProcessEnum.ORDER_CURRENT_PROCESS_7.getStatus().equals(reqVO.getCurrentProcess())) {
             hasPermission = securityFrameworkService.hasPermission(
                     PerConstants.ERP_ORDER_PROCESS_SHIP);
-            //需要判断是否已经发货
-            validateOrderShip(reqVO);
         }
         if (!hasPermission) {
             throw exception(FORBIDDEN);
         }
         this.updateOrderProcess(reqVO);
-    }
-
-    private void validateOrderShip(OrderProcessSaveReqVO reqVO) {
-        //查询订单
-        OrderDO orderDO = orderService.getOrderByOrderNo(reqVO.getOrderNo());
-        if (ObjUtil.isNull(orderDO)) {
-            throw exception(ORDER_NOT_EXISTS);
-        }
-        //如果还没有发货
-        if (ObjUtil.isNull(orderDO.getShippingTime())) {
-            throw exception(ORDER_NOT_SHIPPED);
-        }
-        //判断是否有图片
-        if (StrUtil.isEmpty(reqVO.getOrderImage())) {
-            throw exception(ORDER_NOT_ORDER_IMAGE);
-        }
-        //异步去构建向量
-        executor.execute(() -> {
-            orderVectorService.indexOrderVector(reqVO);
-        });
     }
 
     /**
