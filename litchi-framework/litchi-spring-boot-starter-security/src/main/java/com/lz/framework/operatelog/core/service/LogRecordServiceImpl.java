@@ -39,7 +39,6 @@ public class LogRecordServiceImpl implements ILogRecordService {
             fillModuleFields(reqDTO, logRecord);
             // 补全请求信息
             fillRequestFields(reqDTO);
-
             // 2. 异步记录日志
             operateLogApi.createOperateLogAsync(reqDTO);
         } catch (Throwable ex) {
@@ -76,6 +75,7 @@ public class LogRecordServiceImpl implements ILogRecordService {
         reqDTO.setRequestMethod(request.getMethod());
         reqDTO.setRequestUrl(request.getRequestURI());
         UserAgent userAgentInfo = ServletUtils.getUserAgentInfo();
+        reqDTO.setUserIp(ServletUtils.getClientIP());
         reqDTO.setUserPlatform(userAgentInfo.getPlatform().getName());
         reqDTO.setUserBrowser(userAgentInfo.getBrowser().getName());
         reqDTO.setUserAgent(ServletUtils.getUserAgent(request));

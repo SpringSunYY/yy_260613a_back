@@ -1,11 +1,12 @@
 package com.lz.module.erp.service.orderProcess;
 
-import java.util.*;
-import jakarta.validation.*;
-import com.lz.module.erp.controller.admin.orderProcess.vo.*;
-import com.lz.module.erp.dal.dataobject.orderProcess.OrderProcessDO;
 import com.lz.framework.common.pojo.PageResult;
-import com.lz.framework.common.pojo.PageParam;
+import com.lz.module.erp.controller.admin.orderProcess.vo.OrderProcessPageReqVO;
+import com.lz.module.erp.controller.admin.orderProcess.vo.OrderProcessSaveReqVO;
+import com.lz.module.erp.dal.dataobject.orderProcess.OrderProcessDO;
+import jakarta.validation.Valid;
+
+import java.util.List;
 
 /**
  * 订单工序 Service 接口
@@ -37,10 +38,10 @@ public interface OrderProcessService {
     void deleteOrderProcess(Long id);
 
     /**
-    * 批量删除订单工序
-    *
-    * @param ids 编号
-    */
+     * 批量删除订单工序
+     *
+     * @param ids 编号
+     */
     void deleteOrderProcessListByIds(List<Long> ids);
 
     /**
@@ -59,6 +60,7 @@ public interface OrderProcessService {
      * @return 订单工序
      */
     OrderProcessDO getOrderProcessByOrderNo(String orderNo);
+
     /**
      * 获得订单工序分页
      *
@@ -71,10 +73,11 @@ public interface OrderProcessService {
     /**
      * 更新订单工序状态
      *
-     * @param orderNo 工单号
-     * @param targetProcess 工单状态
+     * @param orderNo        工单号
+     * @param oldProcess     工序
+     * @param currentProcess 当前工序
      */
-    void updateProcessToTargetProcessByNo(String orderNo, String targetProcess);
+    void updateProcessToTargetProcessByNo(String orderNo, String oldProcess, String currentProcess);
 
     /**
      * 更新订单工序状态

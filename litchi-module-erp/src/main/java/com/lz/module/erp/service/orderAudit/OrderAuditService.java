@@ -60,4 +60,10 @@ public interface OrderAuditService {
     PageResult<OrderAuditDO> getOrderAuditPage(OrderAuditPageReqVO pageReqVO);
 
 
+    /**
+     * 获得订单审核记录列表
+     *
+     * @return 订单审核记录列表
+     */
+    List<OrderAuditDetailVO> getOrderAuditListByNo(String no);
 }

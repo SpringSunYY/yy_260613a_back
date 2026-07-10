@@ -26,11 +26,17 @@ public class AdminUserSimpRespDTO {
      */
     private String username;
 
+    /**
+     * 头像
+     */
+    private String avatar;
+
     public static AdminUserSimpRespDTO toSimple(AdminUserDO user) {
         AdminUserSimpRespDTO simple = new AdminUserSimpRespDTO();
         simple.setId(String.valueOf(user.getId()));
         simple.setNickname(user.getNickname());
         simple.setUsername(user.getUsername());
+        simple.setAvatar(user.getAvatar());
         return simple;
     }
 }

@@ -5,6 +5,7 @@ import lombok.*;
 import java.util.*;
 import com.lz.framework.common.validation.i18n.I18nNotEmpty;
 import com.lz.framework.common.validation.i18n.I18nNotNull;
+import com.mzt.logapi.starter.annotation.DiffLogField;
 import jakarta.validation.constraints.*;
 
 /**
@@ -27,6 +28,7 @@ public class OrderProcessSaveReqVO {
      */
     @Schema(description = "当前工序", requiredMode = Schema.RequiredMode.REQUIRED)
 //    @I18nNotEmpty(i18nKey = "erp.orderProcess.back.currentProcess.notEmpty", message = "当前工序不能为空")
+    @DiffLogField(name = "当前工序")
     private String currentProcess;
 
     /**
@@ -40,24 +42,28 @@ public class OrderProcessSaveReqVO {
      * 排版人
      */
     @Schema(description = "排版人")
+    @DiffLogField(name = "排版人")
     private String layoutPerson;
 
     /**
      * 图片
      */
     @Schema(description = "图片")
+    @DiffLogField(name = "图片")
     private String orderImage;
 
     /**
      * 二维码
      */
     @Schema(description = "二维码")
+    @DiffLogField(name = "二维码")
     private String qrCode;
 
     /**
      * 版型
      */
     @Schema(description = "版型")
+    @DiffLogField(name = "版型")
     private String pattern;
 
     /**
@@ -65,6 +71,7 @@ public class OrderProcessSaveReqVO {
      */
     @Schema(description = "布料", requiredMode = Schema.RequiredMode.REQUIRED)
     @I18nNotEmpty(i18nKey = "erp.orderProcess.back.fabric.notEmpty", message = "布料不能为空")
+    @DiffLogField(name = "布料")
     private String fabric;
 
     /**
@@ -72,6 +79,7 @@ public class OrderProcessSaveReqVO {
      */
     @Schema(description = "品类", requiredMode = Schema.RequiredMode.REQUIRED)
     @I18nNotEmpty(i18nKey = "erp.orderProcess.back.category.notEmpty", message = "品类不能为空")
+    @DiffLogField(name = "品类")
     private String category;
 
     /**
@@ -79,6 +87,7 @@ public class OrderProcessSaveReqVO {
      */
     @Schema(description = "规格", requiredMode = Schema.RequiredMode.REQUIRED)
     @I18nNotEmpty(i18nKey = "erp.orderProcess.back.specification.notEmpty", message = "规格不能为空")
+    @DiffLogField(name = "规格")
     private String specification;
 
     /**
@@ -86,6 +95,7 @@ public class OrderProcessSaveReqVO {
      */
     @Schema(description = "开叉与否", requiredMode = Schema.RequiredMode.REQUIRED)
     @I18nNotEmpty(i18nKey = "erp.orderProcess.back.hasForked.notEmpty", message = "开叉与否不能为空")
+    @DiffLogField(name = "开叉与否")
     private String hasForked;
 
     /**
@@ -93,6 +103,7 @@ public class OrderProcessSaveReqVO {
      */
     @Schema(description = "衫脚", requiredMode = Schema.RequiredMode.REQUIRED)
     @I18nNotEmpty(i18nKey = "erp.orderProcess.back.shirtHem.notEmpty", message = "衫脚不能为空")
+    @DiffLogField(name = "衫脚")
     private String shirtHem;
 
     /**
@@ -100,6 +111,7 @@ public class OrderProcessSaveReqVO {
      */
     @Schema(description = "口袋", requiredMode = Schema.RequiredMode.REQUIRED)
     @I18nNotEmpty(i18nKey = "erp.orderProcess.back.pocket.notEmpty", message = "口袋不能为空")
+    @DiffLogField(name = "口袋")
     private String pocket;
 
     /**
@@ -107,24 +119,28 @@ public class OrderProcessSaveReqVO {
      */
     @Schema(description = "领口", requiredMode = Schema.RequiredMode.REQUIRED)
     @I18nNotEmpty(i18nKey = "erp.orderProcess.back.neckline.notEmpty", message = "领口不能为空")
+    @DiffLogField(name = "领口")
     private String neckline;
 
     /**
      * 包装要求
      */
     @Schema(description = "包装要求")
+    @DiffLogField(name = "包装要求")
     private String packagingRequirements;
 
     /**
      * 车间要求
      */
     @Schema(description = "车间要求")
+    @DiffLogField(name = "车间要求")
     private String workshopRequirements;
 
     /**
      * 特别备注
      */
     @Schema(description = "特别备注", example = "你说的对")
+    @DiffLogField(name = "特别备注")
     private String remark;
 
 }

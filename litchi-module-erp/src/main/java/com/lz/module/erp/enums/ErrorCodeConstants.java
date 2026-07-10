@@ -17,6 +17,7 @@ public interface ErrorCodeConstants {
     ErrorCode ORDER_AUDIT_STATUS_ERROR = new ErrorCode(1_003_000_002, "erp.order.back.auditStatusError", "订单审核状态错误");
     ErrorCode ORDER_AUDIT_STATUE_APPROVE = new ErrorCode(1_003_000_002, "erp.order.back.processApprove", "订单审核通过，请勿重复审核");
     ErrorCode ORDER_NOT_SHIPPED = new ErrorCode(1_003_000_002, "erp.order.back.notShipped", "订单未发货");
+    ErrorCode ORDER_NO_NOT_EQUALS= new ErrorCode(1_003_000_002, "erp.order.back.orderNoNotEquals", "订单号不一致");
     // ========== 导入通用错误码（可自行配置国际化） ==========
     ErrorCode ORDER_IMPORT_DATA_EMPTY = new ErrorCode(1_003_000_100, "erp.back.import.dataEmpty", "订单信息导入数据不能为空！");
 

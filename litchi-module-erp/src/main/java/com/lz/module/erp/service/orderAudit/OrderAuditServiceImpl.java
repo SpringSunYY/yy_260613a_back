@@ -2,12 +2,16 @@ package com.lz.module.erp.service.orderAudit;
 
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.dynamic.datasource.annotation.DSTransactional;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.lz.framework.common.pojo.PageResult;
 import com.lz.framework.common.util.object.BeanUtils;
+import com.lz.module.erp.controller.admin.orderAudit.vo.OrderAuditDetailVO;
 import com.lz.module.erp.controller.admin.orderAudit.vo.OrderAuditPageReqVO;
 import com.lz.module.erp.controller.admin.orderAudit.vo.OrderAuditSaveReqVO;
+import com.lz.module.erp.controller.admin.orderProcessHistory.vo.OrderProcessHistoryDetailVO;
 import com.lz.module.erp.dal.dataobject.order.OrderDO;
 import com.lz.module.erp.dal.dataobject.orderAudit.OrderAuditDO;
+import com.lz.module.erp.dal.dataobject.orderProcessHistory.OrderProcessHistoryDO;
 import com.lz.module.erp.dal.mysql.orderAudit.OrderAuditMapper;
 import com.lz.module.erp.enums.ErpOrderAuditStatusEnum;
 import com.lz.module.erp.enums.ErpOrderCurrentProcessEnum;
@@ -19,6 +23,7 @@ import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -68,7 +73,7 @@ public class OrderAuditServiceImpl implements OrderAuditService {
         if (orderAudit.getAuditStatus().equals(ErpOrderAuditStatusEnum.ORDER_AUDIT_STATUS_3.getStatus())) {
             orderByOrderNo.setCurrentProcess(ErpOrderCurrentProcessEnum.ORDER_CURRENT_PROCESS_2.getStatus());
             //更新工序
-            orderProcessService.updateProcessToTargetProcessByNo(orderByOrderNo.getOrderNo(), ErpOrderCurrentProcessEnum.ORDER_CURRENT_PROCESS_2.getStatus());
+            orderProcessService.updateProcessToTargetProcessByNo(orderByOrderNo.getOrderNo(),orderByOrderNo.getCurrentProcess(), ErpOrderCurrentProcessEnum.ORDER_CURRENT_PROCESS_2.getStatus());
         }
         orderByOrderNo.setAuditStatus(orderAudit.getAuditStatus());
         orderService.updateOrder(orderByOrderNo);
@@ -127,6 +132,33 @@ public class OrderAuditServiceImpl implements OrderAuditService {
             orderDO.setCreator(userSimpMap.getOrDefault(orderDO.getCreator(),new AdminUserSimpRespDTO()).getNickname());
         });
         return orderAuditDOPageResult;
+    }
+
+    @Override
+    public List<OrderAuditDetailVO> getOrderAuditListByNo(String no) {
+        List<OrderAuditDO> dos = orderAuditMapper.selectList(
+                new LambdaQueryWrapper<>(OrderAuditDO.class)
+                .eq(OrderAuditDO::getOrderNo, no)
+                .orderByDesc(OrderAuditDO::getCreateTime));
+        if (dos.isEmpty()) {
+            return Collections.emptyList();
+        }
+        //转为vo
+        List<OrderAuditDetailVO> detailVOS = BeanUtils.toBean(dos, OrderAuditDetailVO.class);
+        //构建创建人
+        //提取所有的创建人
+        List<String> creatorIds = detailVOS
+                .stream().map(OrderAuditDetailVO::getCreator).distinct().toList();
+        List<AdminUserSimpRespDTO> userSimpList = adminUserApi.getUserSimpList(creatorIds);
+        //根据id转为map
+        Map<String, AdminUserSimpRespDTO> userSimpMap = userSimpList.stream()
+                .collect(Collectors.toMap(AdminUserSimpRespDTO::getId, v -> v));
+        detailVOS.forEach(detailVO -> {
+            AdminUserSimpRespDTO user = userSimpMap.getOrDefault(detailVO.getCreator(), new AdminUserSimpRespDTO());
+            detailVO.setCreator(user.getNickname());
+            detailVO.setAvatar(user.getAvatar());
+        });
+        return detailVOS;
     }
 
 

@@ -6,10 +6,7 @@ import com.lz.framework.common.pojo.PageParam;
 import com.lz.framework.common.pojo.PageResult;
 import com.lz.framework.common.util.object.BeanUtils;
 import com.lz.framework.excel.core.util.ExcelUtils;
-import com.lz.module.erp.controller.admin.orderProcessHistory.vo.OrderProcessHistoryExcelVO;
-import com.lz.module.erp.controller.admin.orderProcessHistory.vo.OrderProcessHistoryPageReqVO;
-import com.lz.module.erp.controller.admin.orderProcessHistory.vo.OrderProcessHistoryRespVO;
-import com.lz.module.erp.controller.admin.orderProcessHistory.vo.OrderProcessHistorySaveReqVO;
+import com.lz.module.erp.controller.admin.orderProcessHistory.vo.*;
 import com.lz.module.erp.dal.dataobject.orderProcessHistory.OrderProcessHistoryDO;
 import com.lz.module.erp.service.orderProcessHistory.OrderProcessHistoryService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -97,6 +94,18 @@ public class OrderProcessHistoryController {
     public CommonResult<OrderProcessHistoryRespVO> getOrderProcessHistory(@RequestParam("id") Long id) {
         OrderProcessHistoryDO orderProcessHistory = orderProcessHistoryService.getOrderProcessHistory(id);
         return success(BeanUtils.toBean(orderProcessHistory, OrderProcessHistoryRespVO.class));
+    }
+
+    /**
+     * 获取订单记录根据orderNo
+     */
+    @GetMapping("/get/no")
+    @Operation(summary = "获取订单记录根据orderNo")
+    @Parameter(name = "orderNo", description = "订单号", required = true, example = "1024")
+    @PreAuthorize("@ss.hasPermission('erp:order-process-history:query')")
+    public CommonResult<List<OrderProcessHistoryDetailVO>> getOrderProcessHistoryByOrderNo(@RequestParam("no") String no) {
+        List<OrderProcessHistoryDetailVO> list = orderProcessHistoryService.getOrderProcessHistoryByOrderNo(no);
+        return success(list);
     }
 
     /**

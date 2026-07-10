@@ -59,5 +59,11 @@ public interface OrderProcessHistoryService {
      */
     PageResult<OrderProcessHistoryDO> getOrderProcessHistoryPage(OrderProcessHistoryPageReqVO pageReqVO);
 
-
+    /**
+     * 获得订单工序记录详情
+     *
+     * @param no 订单编号
+     * @return 订单工序记录详情
+     */
+    List<OrderProcessHistoryDetailVO> getOrderProcessHistoryByOrderNo(String no);
 }

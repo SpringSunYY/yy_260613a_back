@@ -107,6 +107,17 @@ public class OrderAuditController {
     }
 
     /**
+     * 获取订单审核记录列表，根据no
+     */
+    @GetMapping("/get/no")
+    @Operation(summary = "获取订单审核记录列表，根据no")
+    @PreAuthorize("@ss.hasPermission('erp:order-audit:query')")
+    public CommonResult<List<OrderAuditDetailVO>> getOrderAuditListByNo(@RequestParam("no") String no) {
+        List<OrderAuditDetailVO> list = orderAuditService.getOrderAuditListByNo(no);
+        return success(list);
+    }
+
+    /**
      * 获取订单审核记录分页
      */
     @GetMapping("/page")

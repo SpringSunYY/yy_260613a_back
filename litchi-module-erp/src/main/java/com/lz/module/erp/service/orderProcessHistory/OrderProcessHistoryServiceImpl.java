@@ -2,6 +2,7 @@ package com.lz.module.erp.service.orderProcessHistory;
 
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.lz.module.erp.dal.dataobject.orderProcess.OrderProcessDO;
 import com.lz.module.system.api.user.AdminUserApi;
 import com.lz.module.system.api.user.dto.AdminUserSimpRespDTO;
@@ -100,6 +101,32 @@ public class OrderProcessHistoryServiceImpl implements OrderProcessHistoryServic
             orderDO.setCreator(userSimpMap.getOrDefault(orderDO.getCreator(),new AdminUserSimpRespDTO()).getNickname());
         });
         return orderProcessHistoryDOPageResult;
+    }
+
+    @Override
+    public List<OrderProcessHistoryDetailVO> getOrderProcessHistoryByOrderNo(String no) {
+        List<OrderProcessHistoryDO> dos = orderProcessHistoryMapper.selectList(new LambdaQueryWrapper<>(OrderProcessHistoryDO.class)
+                .eq(OrderProcessHistoryDO::getOrderNo, no)
+                .orderByDesc(OrderProcessHistoryDO::getCreateTime));
+        if (dos.isEmpty()) {
+            return Collections.emptyList();
+        }
+        //转为vo
+        List<OrderProcessHistoryDetailVO> detailVOS = BeanUtils.toBean(dos, OrderProcessHistoryDetailVO.class);
+        //构建创建人
+        //提取所有的创建人
+        List<String> creatorIds = detailVOS
+                .stream().map(OrderProcessHistoryDetailVO::getCreator).distinct().toList();
+        List<AdminUserSimpRespDTO> userSimpList = adminUserApi.getUserSimpList(creatorIds);
+        //根据id转为map
+        Map<String, AdminUserSimpRespDTO> userSimpMap = userSimpList.stream()
+                .collect(Collectors.toMap(AdminUserSimpRespDTO::getId, v -> v));
+        detailVOS.forEach(detailVO -> {
+            AdminUserSimpRespDTO user = userSimpMap.getOrDefault(detailVO.getCreator(), new AdminUserSimpRespDTO());
+            detailVO.setCreator(user.getNickname());
+            detailVO.setAvatar(user.getAvatar());
+        });
+        return detailVOS;
     }
 
 

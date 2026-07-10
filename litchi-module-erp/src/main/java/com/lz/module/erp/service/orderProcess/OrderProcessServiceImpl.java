@@ -64,6 +64,7 @@ public class OrderProcessServiceImpl implements OrderProcessService {
 
     @Resource
     private OrderVectorService orderVectorService;
+
     @Override
     public Long createOrderProcess(OrderProcessSaveReqVO createReqVO) {
         // 插入
@@ -81,18 +82,24 @@ public class OrderProcessServiceImpl implements OrderProcessService {
         OrderProcessDO orderProcessDO = validateOrderProcessExists(updateReqVO.getId());
         //校验订单是否存在
         OrderDO orderDO = orderService.validateOrderExistsByNo(orderProcessDO.getOrderNo());
+
         //判断冗余数据是否一致，如果不一致要更新订单的数据
-        if ((StrUtil.isNotEmpty(updateReqVO.getOrderImage()) && StrUtil.isNotEmpty(orderDO.getOrderImage()) && !updateReqVO.getOrderImage().equals(orderDO.getOrderImage()))
-                || (StrUtil.isNotEmpty(updateReqVO.getQrCode()) && StrUtil.isNotEmpty(orderDO.getQrCode()) && !updateReqVO.getQrCode().equals(orderDO.getQrCode()))
-                || !updateReqVO.getPattern().equals(orderDO.getPattern())
-                || !updateReqVO.getFabric().equals(orderDO.getFabric())
-                || !updateReqVO.getSpecification().equals(orderDO.getSpecification())) {
-            orderService.initOrderByProcess(orderDO, updateReqVO);
+        if (!ObjUtil.equal(orderProcessDO.getCurrentProcess(), orderDO.getCurrentProcess())
+                || (StrUtil.isNotBlank(orderProcessDO.getOrderImage()) && StrUtil.isNotBlank(orderDO.getOrderImage()) && !orderProcessDO.getOrderImage().equals(orderDO.getOrderImage()))
+                || (StrUtil.isNotBlank(orderProcessDO.getQrCode()) && StrUtil.isNotBlank(orderDO.getQrCode()) && !orderProcessDO.getQrCode().equals(orderDO.getQrCode()))
+                || (StrUtil.isNotBlank(orderProcessDO.getPattern()) && !orderProcessDO.getPattern().equals(orderDO.getPattern()))
+                || (StrUtil.isNotBlank(orderProcessDO.getFabric()) && !orderProcessDO.getFabric().equals(orderDO.getFabric()))
+                || (StrUtil.isNotBlank(orderProcessDO.getSpecification()) && !orderProcessDO.getSpecification().equals(orderDO.getSpecification()))) {
+            orderService.initOrderByProcess(orderDO, BeanUtils.toBean(orderProcessDO, OrderProcessSaveReqVO.class));
             orderService.updateOrder(orderDO);
         }
+        //判断工序是否一致
+        if (!ObjUtil.equal(orderProcessDO.getCurrentProcess(), updateReqVO.getCurrentProcess())) {
+            createProcessHistory(updateReqVO.getOrderNo(), updateReqVO.getCurrentProcess(), orderProcessDO.getCurrentProcess());
+        }
         // 更新
-        OrderProcessDO updateObj = BeanUtils.toBean(updateReqVO, OrderProcessDO.class);
-        orderProcessMapper.updateById(updateObj);
+        orderProcessMapper.updateById(orderProcessDO);
+
     }
 
 
@@ -148,23 +155,22 @@ public class OrderProcessServiceImpl implements OrderProcessService {
 
     @Override
     @DSTransactional
-    public void updateProcessToTargetProcessByNo(String orderNo, String targetProcess) {
-        //先查询工序是否存在
-        OrderProcessDO orderProcessDO = orderProcessMapper.selectOne(OrderProcessDO::getOrderNo, orderNo);
-        if (orderProcessDO == null) {
-            throw exception(ORDER_PROCESS_NOT_EXISTS);
-        }
-        OrderProcessHistorySaveReqVO createReqVO = new OrderProcessHistorySaveReqVO();
-        createReqVO.setOrderNo(orderNo);
-        createReqVO.setOldProcess(orderProcessDO.getCurrentProcess());
-        createReqVO.setCurrentProcess(targetProcess);
-        orderProcessHistoryService.createOrderProcessHistory(createReqVO);
+    public void updateProcessToTargetProcessByNo(String orderNo, String oldProcess, String currentProcess) {
+        createProcessHistory(orderNo, oldProcess, currentProcess);
         LambdaUpdateWrapper<OrderProcessDO> updateWrapper = new LambdaUpdateWrapper<>();
         updateWrapper.eq(OrderProcessDO::getOrderNo, orderNo);
-        updateWrapper.set(OrderProcessDO::getCurrentProcess, targetProcess);
+        updateWrapper.set(OrderProcessDO::getCurrentProcess, currentProcess);
         updateWrapper.set(OrderProcessDO::getUpdateTime, LocalDateTime.now());
         updateWrapper.set(OrderProcessDO::getUpdater, SecurityFrameworkUtils.getLoginUserId());
         orderProcessMapper.update(updateWrapper);
+    }
+
+    private void createProcessHistory(String orderNo, String oldProcess, String currentProcess) {
+        OrderProcessHistorySaveReqVO createReqVO = new OrderProcessHistorySaveReqVO();
+        createReqVO.setOrderNo(orderNo);
+        createReqVO.setOldProcess(oldProcess);
+        createReqVO.setCurrentProcess(currentProcess);
+        orderProcessHistoryService.createOrderProcessHistory(createReqVO);
     }
 
     @Override
@@ -210,7 +216,7 @@ public class OrderProcessServiceImpl implements OrderProcessService {
             throw exception(ORDER_NOT_SHIPPED);
         }
         //异步去构建向量
-        executor.execute(()->{
+        executor.execute(() -> {
             orderVectorService.indexOrderVector(reqVO);
         });
     }

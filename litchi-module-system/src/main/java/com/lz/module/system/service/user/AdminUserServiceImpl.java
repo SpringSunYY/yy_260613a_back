@@ -339,7 +339,8 @@ public class AdminUserServiceImpl implements AdminUserService {
         queryWrapper.select(
                 AdminUserDO::getId,
                 AdminUserDO::getNickname,
-                AdminUserDO::getUsername
+                AdminUserDO::getUsername,
+                AdminUserDO::getAvatar
         );
         queryWrapper.in(AdminUserDO::getId, ids);
         return userMapper.selectList(queryWrapper);
