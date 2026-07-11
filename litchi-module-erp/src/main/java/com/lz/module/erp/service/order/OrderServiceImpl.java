@@ -12,6 +12,7 @@ import com.lz.framework.common.pojo.PageResult;
 import com.lz.framework.common.util.object.BeanUtils;
 import com.lz.framework.common.util.object.ObjectUtils;
 import com.lz.module.erp.controller.admin.order.vo.*;
+import com.lz.module.erp.controller.admin.orderProcess.vo.OrderProcessRespVO;
 import com.lz.module.erp.controller.admin.orderProcess.vo.OrderProcessSaveReqVO;
 import com.lz.module.erp.dal.dataobject.order.OrderDO;
 import com.lz.module.erp.dal.dataobject.order.OrderDetailDO;
@@ -243,6 +244,22 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public OrderDO getOrderByOrderNo(String orderNo) {
         return orderMapper.selectOne(OrderDO::getOrderNo, orderNo);
+    }
+
+    @Override
+    public OrderDetailVO getOrderDetailByNo(String orderNo) {
+        OrderDO orderDO = this.getOrderByOrderNo(orderNo);
+        if (orderDO == null) {
+            throw exception(ORDER_NOT_EXISTS);
+        }
+        OrderDetailVO detailRespVO = BeanUtils.toBean(orderDO, OrderDetailVO.class);
+        //查询工序
+        OrderProcessDO process = orderProcessService.getOrderProcessByOrderNo(orderNo);
+        detailRespVO.setOrderProcess(BeanUtils.toBean(process, OrderProcessRespVO.class));
+        //查询订单明细
+        List<OrderDetailDO> detailDOS = this.getOrderDetailListByOrderNo(orderNo);
+        detailRespVO.setOrderDetails(BeanUtils.toBean(detailDOS, OrderDetailRespVo.class));
+        return detailRespVO;
     }
 
     @Override

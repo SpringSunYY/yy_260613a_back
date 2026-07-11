@@ -135,6 +135,17 @@ public class OrderController {
     }
 
     /**
+     * 获取订单明细-包括订单、工序、订单明细
+     */
+    @GetMapping("/get/detail/no")
+    @Operation(summary = "获得订单明细信息-no")
+    @Parameter(name = "orderNo", description = "订单编号", required = true, example = "orderNo")
+    @PreAuthorize("@ss.hasPermission('erp:order:query')")
+    public CommonResult<OrderDetailVO> getOrderDetailByNo(@RequestParam("orderNo") String orderNo) {
+        return success(orderService.getOrderDetailByNo(orderNo));
+    }
+
+    /**
      * 获取订单信息分页
      */
     @GetMapping("/page")
@@ -182,8 +193,8 @@ public class OrderController {
     @Operation(summary = "获得订单明细列表")
     @Parameter(name = "orderNo", description = "订单号")
     @PreAuthorize("@ss.hasPermission('erp:order:query')")
-    public CommonResult<List<OrderDetailDO>> getOrderDetailListByOrderNo(@RequestParam("orderNo") String orderNo) {
-        return success(orderService.getOrderDetailListByOrderNo(orderNo));
+    public CommonResult<List<OrderDetailRespVo>> getOrderDetailListByOrderNo(@RequestParam("orderNo") String orderNo) {
+        return success(BeanUtils.toBean(orderService.getOrderDetailListByOrderNo(orderNo), OrderDetailRespVo.class));
     }
 
 }

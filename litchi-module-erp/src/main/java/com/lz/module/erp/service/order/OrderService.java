@@ -1,10 +1,7 @@
 package com.lz.module.erp.service.order;
 
 import com.lz.framework.common.pojo.PageResult;
-import com.lz.module.erp.controller.admin.order.vo.OrderAuditReqVO;
-import com.lz.module.erp.controller.admin.order.vo.OrderPageReqVO;
-import com.lz.module.erp.controller.admin.order.vo.OrderSaveReqVO;
-import com.lz.module.erp.controller.admin.order.vo.OrderShipReqVO;
+import com.lz.module.erp.controller.admin.order.vo.*;
 import com.lz.module.erp.controller.admin.orderProcess.vo.OrderProcessSaveReqVO;
 import com.lz.module.erp.dal.dataobject.order.OrderDO;
 import com.lz.module.erp.dal.dataobject.order.OrderDetailDO;
@@ -92,6 +89,15 @@ public interface OrderService {
      * @return 订单信息
      */
     OrderDO getOrderByOrderNo(String orderNo);
+
+
+    /**
+     * 获得订单明细信息
+     *
+     * @param orderNo 工单号
+     * @return 订单明细信息
+     */
+    OrderDetailVO getOrderDetailByNo(String orderNo);
 
     /**
      * 获得订单信息分页
