@@ -73,6 +73,8 @@ public interface OrderVectorService {
      */
     void indexOrderVector(String orderNo,String imageUrls);
 
+
+    void resetOrderVectorByOrderNo(String orderNo);
     /**
      * 以图搜图（按库内向量 id）
      *

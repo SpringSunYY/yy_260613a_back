@@ -1,6 +1,5 @@
 package com.lz.module.erp.service.orderProcess;
 
-import cn.hutool.core.util.ObjUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.dynamic.datasource.annotation.DSTransactional;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
@@ -19,11 +18,10 @@ import com.lz.module.erp.enums.ErpOrderCurrentProcessEnum;
 import com.lz.module.erp.enums.PerConstants;
 import com.lz.module.erp.service.order.OrderService;
 import com.lz.module.erp.service.orderProcessHistory.OrderProcessHistoryService;
-import com.lz.module.erp.service.orderVector.OrderVectorService;
 import com.lz.module.system.api.user.AdminUserApi;
 import com.lz.module.system.api.user.dto.AdminUserSimpRespDTO;
 import jakarta.annotation.Resource;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
@@ -34,7 +32,8 @@ import java.util.stream.Collectors;
 
 import static com.lz.framework.common.exception.enums.GlobalErrorCodeConstants.FORBIDDEN;
 import static com.lz.framework.common.exception.util.ServiceExceptionUtil.exception;
-import static com.lz.module.erp.enums.ErrorCodeConstants.*;
+import static com.lz.module.erp.enums.ErrorCodeConstants.ORDER_AUDIT_STATUS_NO_APPROVE;
+import static com.lz.module.erp.enums.ErrorCodeConstants.ORDER_PROCESS_NOT_EXISTS;
 
 /**
  * 订单工序 Service 实现类
@@ -49,6 +48,7 @@ public class OrderProcessServiceImpl implements OrderProcessService {
     private OrderProcessMapper orderProcessMapper;
 
     @Resource
+    @Lazy
     private OrderService orderService;
 
     @Resource
@@ -90,13 +90,12 @@ public class OrderProcessServiceImpl implements OrderProcessService {
         }
         //判断工序是否一致
         if (isFieldChanged(reqVO.getCurrentProcess(), orderDO.getCurrentProcess())
-                ||isFieldChanged(reqVO.getCurrentProcess(), processDO.getCurrentProcess())) {
+                || isFieldChanged(reqVO.getCurrentProcess(), processDO.getCurrentProcess())) {
             createProcessHistory(reqVO.getOrderNo(), processDO.getCurrentProcess(), reqVO.getCurrentProcess());
         }
         // 更新
         orderProcessMapper.updateById(BeanUtils.toBean(reqVO, OrderProcessDO.class));
     }
-
 
 
     @Override
@@ -227,6 +226,6 @@ public class OrderProcessServiceImpl implements OrderProcessService {
      * 单个字段变化判断：数据库有值且与请求值不同
      */
     private boolean isFieldChanged(String dbValue, String reqValue) {
-        return StrUtil.isNotEmpty(dbValue) && !reqValue.equals(dbValue);
+        return StrUtil.isNotEmpty(dbValue) && StrUtil.isNotEmpty(reqValue) && !reqValue.equals(dbValue);
     }
 }

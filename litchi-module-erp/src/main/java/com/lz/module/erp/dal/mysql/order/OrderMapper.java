@@ -4,9 +4,14 @@ import com.lz.framework.common.pojo.PageResult;
 import com.lz.framework.mybatis.core.mapper.BaseMapperX;
 import com.lz.framework.mybatis.core.query.LambdaQueryWrapperX;
 import com.lz.module.erp.controller.admin.order.vo.OrderPageReqVO;
+import com.lz.module.erp.controller.admin.order.vo.OrderStatisticsRespVO;
 import com.lz.module.erp.dal.dataobject.order.OrderDO;
 import com.lz.module.erp.enums.ErpOrderAuditStatusEnum;
+import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
 
 /**
  * 订单信息 Mapper
@@ -22,6 +27,11 @@ public interface OrderMapper extends BaseMapperX<OrderDO> {
     }
 
     default LambdaQueryWrapperX<OrderDO> builderQueryWrapper(OrderPageReqVO reqVO) {
+        return builderQueryConditions(reqVO)
+                .applyOrderDesc(reqVO, OrderDO::getId);
+    }
+
+    default LambdaQueryWrapperX<OrderDO> builderQueryConditions(OrderPageReqVO reqVO) {
         return new LambdaQueryWrapperX<OrderDO>()
                 .likeIfPresent(OrderDO::getName, reqVO.getName())
                 .eqIfPresent(OrderDO::getOrderNo, reqVO.getOrderNo())
@@ -40,8 +50,7 @@ public interface OrderMapper extends BaseMapperX<OrderDO> {
                 .eqIfPresent(OrderDO::getShippingNo, reqVO.getShippingNo())
                 .betweenIfPresent(OrderDO::getShippingTime, reqVO.getShippingTime())
                 .eqIfPresent(OrderDO::getPrintStatus, reqVO.getPrintStatus())
-                .betweenIfPresent(OrderDO::getCreateTime, reqVO.getCreateTime())
-                .applyOrderDesc(reqVO, OrderDO::getId);
+                .betweenIfPresent(OrderDO::getCreateTime, reqVO.getCreateTime());
     }
 
     default PageResult<OrderDO> selectShipPage(OrderPageReqVO pageReqVO) {
@@ -50,4 +59,18 @@ public interface OrderMapper extends BaseMapperX<OrderDO> {
         queryWrapperX.eq(OrderDO::getAuditStatus, ErpOrderAuditStatusEnum.ORDER_AUDIT_STATUS_3.getStatus());
         return selectPage(pageReqVO, queryWrapperX);
     }
+
+    default List<OrderStatisticsRespVO> getOrderStatistics(OrderPageReqVO pageReqVO) {
+        LambdaQueryWrapperX<OrderDO> queryWrapperX = builderQueryConditions(pageReqVO);
+        return getOrderStatistics(queryWrapperX);
+    }
+
+    List<OrderStatisticsRespVO> getOrderStatistics(@Param("ew") Wrapper<OrderDO> wrapper);
+
+    default List<OrderStatisticsRespVO> getOrderShipStatistics(OrderPageReqVO pageReqVO){
+        LambdaQueryWrapperX<OrderDO> queryWrapperX = builderQueryConditions(pageReqVO);
+        queryWrapperX.isNull(OrderDO::getShippingTime);
+        queryWrapperX.eq(OrderDO::getAuditStatus, ErpOrderAuditStatusEnum.ORDER_AUDIT_STATUS_3.getStatus());
+        return getOrderStatistics(queryWrapperX);
+    };
 }

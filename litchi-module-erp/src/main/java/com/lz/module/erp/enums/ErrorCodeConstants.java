@@ -36,6 +36,7 @@ public interface ErrorCodeConstants {
 
     // ========== 订单工序 ==========
     ErrorCode ORDER_PROCESS_NOT_EXISTS = new ErrorCode(1_003_000_001, "erp.orderProcess.back.notExists", "订单工序不存在");
+    ErrorCode ORDER_PROCESS_NOT_IMAGE = new ErrorCode(1_003_000_002, "erp.orderProcess.back.processImage.notEmpty", "订单工序未上传图片");
     // ========== 导入通用错误码（可自行配置国际化） ==========
     ErrorCode ORDER_PROCESS_IMPORT_DATA_EMPTY = new ErrorCode(1_003_000_100, "erp.back.import.dataEmpty", "订单工序导入数据不能为空！");
 

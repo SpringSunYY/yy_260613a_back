@@ -469,7 +469,7 @@ public class DinoFeatureExtractor implements FeatureExtractor {
                     tasks.add(() -> {
                         long ts0 = System.currentTimeMillis();
                         float[] emb = runInference(tensors.get(idx), scale);
-                        log.error("[DINO 任务] scale={} hflip={} | 推理耗时 {}ms",
+                        log.warn("[DINO 任务] scale={} hflip={} | 推理耗时 {}ms",
                                 scale, idx >= scales.length, System.currentTimeMillis() - ts0);
                         return emb;
                     });
@@ -480,7 +480,7 @@ public class DinoFeatureExtractor implements FeatureExtractor {
                 // 单图耗时 ≈ max 而不是 2*max。走 commonPool 而非调用方传入的池——因为此分支
                 // 只在调用方传 null 时才会进入（即"我不在任何池里跑"），没有外层池可以借用。
                 List<Future<float[]>> futures = ForkJoinPool.commonPool().invokeAll(tasks);
-                log.error("[DINO 并发调度] 提交 {} 个任务到 commonPool 并发执行，invokeAll 等待 {}ms",
+                log.warn("[DINO 并发调度] 提交 {} 个任务到 commonPool 并发执行，invokeAll 等待 {}ms",
                         total, System.currentTimeMillis() - tSubmit);
 
                 // 3) 收集结果

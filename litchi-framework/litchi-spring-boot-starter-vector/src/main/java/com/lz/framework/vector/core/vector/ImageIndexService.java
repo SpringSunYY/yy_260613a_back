@@ -346,6 +346,9 @@ public class ImageIndexService {
         return milvusService().queryById(id, withVector, collection);
     }
 
+    public List<QueryResult> queryByOriginKey(String originKey, String collection) {
+        return milvusService().queryByOriginKey(originKey, collection);
+    }
     public List<QueryResult> queryByImagePath(String imagePath, String collection) {
         return milvusService().queryByImagePath(imagePath, collection);
     }

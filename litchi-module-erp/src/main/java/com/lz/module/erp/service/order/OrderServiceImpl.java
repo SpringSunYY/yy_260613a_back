@@ -120,19 +120,21 @@ public class OrderServiceImpl implements OrderService {
     @Transactional(rollbackFor = Exception.class)
     public void updateOrder(OrderSaveReqVO updateReqVO) {
         // 校验存在
-        OrderDO orderDO = validateOrderExists(updateReqVO.getId(), null);
+        OrderDO orderOldDO = validateOrderExists(updateReqVO.getId(), null);
         //如果两个订单号不一样，不可以修改订单号
-        if (!orderDO.getOrderNo().equals(updateReqVO.getOrderNo())) {
+        if (!orderOldDO.getOrderNo().equals(updateReqVO.getOrderNo())) {
             throw exception(ORDER_NO_NOT_EQUALS);
         }
 
+        OrderDO orderDO = BeanUtils.toBean(updateReqVO, OrderDO.class);
         // 更新子表
-        int total = updateOrderDetailList(orderDO.getOrderNo(), updateReqVO.getOrderDetails());
+        int total = updateOrderDetailList(orderOldDO.getOrderNo(), updateReqVO.getOrderDetails());
         orderDO.setNumber(total);
         //更新工序
         OrderProcessSaveReqVO orderProcess = updateReqVO.getOrderProcess();
         initOrderByProcess(orderDO, orderProcess);
-        updateOrderProcess(orderDO.getOrderNo(), orderProcess);
+        updateOrderProcess(updateReqVO.getOrderNo(), orderProcess);
+        orderMapper.updateById(orderDO);
     }
 
     @Override
@@ -361,6 +363,18 @@ public class OrderServiceImpl implements OrderService {
 
     private void deleteOrderDetailByOrderNos(List<String> orderNos) {
         orderDetailMapper.deleteByOrderNos(orderNos);
+    }
+
+
+    // ===================== 统计 =====================
+    @Override
+    public List<OrderStatisticsRespVO> getOrderStatistics(OrderPageReqVO pageReqVO) {
+        return orderMapper.getOrderStatistics(pageReqVO);
+    }
+
+    @Override
+    public List<OrderStatisticsRespVO> getOrderShipStatistics(OrderPageReqVO pageReqVO) {
+        return orderMapper.getOrderShipStatistics(pageReqVO);
     }
 
     private void validateOrderShip(OrderShipReqVO reqVO) {

@@ -20,6 +20,7 @@ import com.lz.module.erp.service.orderProcess.OrderProcessService;
 import com.lz.module.system.api.user.AdminUserApi;
 import com.lz.module.system.api.user.dto.AdminUserSimpRespDTO;
 import jakarta.annotation.Resource;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
@@ -43,8 +44,10 @@ public class OrderAuditServiceImpl implements OrderAuditService {
     @Resource
     private OrderAuditMapper orderAuditMapper;
     @Resource
+    @Lazy
     private OrderService orderService;
     @Resource
+    @Lazy
     private OrderProcessService orderProcessService;
     @Resource
     private AdminUserApi adminUserApi;

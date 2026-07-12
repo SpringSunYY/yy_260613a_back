@@ -152,6 +152,11 @@ public class MilvusService {
         return querier.queryById(id, withVector, collection);
     }
 
+
+    public List<QueryResult> queryByOriginKey(String originKey, String collection) {
+        return querier.queryByOriginKey(originKey, collection);
+    }
+
     public List<QueryResult> queryByImagePath(String imagePath, String collection) {
         return querier.queryByImagePath(imagePath, collection);
     }

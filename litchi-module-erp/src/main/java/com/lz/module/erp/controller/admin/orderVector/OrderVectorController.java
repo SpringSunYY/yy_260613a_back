@@ -7,11 +7,7 @@ import com.lz.framework.common.pojo.PageResult;
 import com.lz.framework.common.util.object.BeanUtils;
 import com.lz.framework.excel.core.util.ExcelUtils;
 import com.lz.framework.vector.pojo.SearchResult;
-import com.lz.module.erp.controller.admin.orderVector.vo.OrderVectorExcelVO;
-import com.lz.module.erp.controller.admin.orderVector.vo.OrderVectorPageReqVO;
-import com.lz.module.erp.controller.admin.orderVector.vo.OrderVectorRespVO;
-import com.lz.module.erp.controller.admin.orderVector.vo.OrderVectorSaveReqVO;
-import com.lz.module.erp.controller.admin.orderVector.vo.OrderVectorSearchReqVO;
+import com.lz.module.erp.controller.admin.orderVector.vo.*;
 import com.lz.module.erp.dal.dataobject.orderVector.OrderVectorDO;
 import com.lz.module.erp.service.orderVector.OrderVectorService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -55,6 +51,17 @@ public class OrderVectorController {
     }
 
     /**
+     * 重新构建向量
+     */
+    @PostMapping("/reset")
+    @Operation(summary = "重构向量")
+    @PreAuthorize("@ss.hasPermission('erp:order-vector:create')")
+    public CommonResult<Boolean> resetOrderVectorByOrderNo(@Valid @RequestBody OrderVectorRestReqVO reqVO) {
+        orderVectorService.resetOrderVectorByOrderNo(reqVO.getOrderNo());
+        return success(true);
+    }
+
+    /**
      * 更新订单向量
      */
     @PutMapping("/update")
@@ -83,7 +90,7 @@ public class OrderVectorController {
     @DeleteMapping("/delete-list")
     @Parameter(name = "ids", description = "编号", required = true)
     @Operation(summary = "批量删除订单向量")
-                @PreAuthorize("@ss.hasPermission('erp:order-vector:delete')")
+    @PreAuthorize("@ss.hasPermission('erp:order-vector:delete')")
     public CommonResult<Boolean> deleteOrderVectorList(@RequestParam("ids") List<Long> ids) {
         orderVectorService.deleteOrderVectorListByIds(ids);
         return success(true);
@@ -120,12 +127,12 @@ public class OrderVectorController {
     @PreAuthorize("@ss.hasPermission('erp:order-vector:export')")
     @ApiAccessLog(operateType = EXPORT)
     public void exportOrderVectorExcel(@Valid OrderVectorPageReqVO pageReqVO,
-              HttpServletResponse response) throws IOException {
+                                       HttpServletResponse response) throws IOException {
         pageReqVO.setPageSize(PageParam.PAGE_SIZE_NONE);
         List<OrderVectorDO> list = orderVectorService.getOrderVectorPage(pageReqVO).getList();
         // 导出 Excel
         ExcelUtils.write(response, "订单向量.xls", "数据", OrderVectorExcelVO.class,
-                        BeanUtils.toBean(list, OrderVectorExcelVO.class));
+                BeanUtils.toBean(list, OrderVectorExcelVO.class));
     }
 
     /**
@@ -136,7 +143,7 @@ public class OrderVectorController {
     @Parameter(name = "id", description = "库内向量编号（erp_order_vector.vectorId）", required = true)
     @PreAuthorize("@ss.hasPermission('erp:order-vector:query')")
     public CommonResult<List<SearchResult>> searchOrderVectorById(@RequestParam("id") String id,
-                                                                   @Valid OrderVectorSearchReqVO reqVO) throws Exception {
+                                                                  @Valid OrderVectorSearchReqVO reqVO) throws Exception {
         return success(orderVectorService.searchById(id, reqVO.getTopK()));
     }
 

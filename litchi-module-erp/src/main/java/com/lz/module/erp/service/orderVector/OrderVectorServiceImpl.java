@@ -7,17 +7,19 @@ import com.lz.framework.common.pojo.PageResult;
 import com.lz.framework.common.util.object.BeanUtils;
 import com.lz.framework.vector.constants.CollectionConstants;
 import com.lz.framework.vector.core.vector.ImageIndexService;
+import com.lz.framework.vector.pojo.QueryResult;
 import com.lz.framework.vector.pojo.SearchResult;
 import com.lz.framework.vector.pojo.VectorRecord;
-import com.lz.module.erp.controller.admin.orderProcess.vo.OrderProcessSaveReqVO;
 import com.lz.module.erp.controller.admin.orderVector.vo.OrderVectorPageReqVO;
 import com.lz.module.erp.controller.admin.orderVector.vo.OrderVectorSaveReqVO;
+import com.lz.module.erp.dal.dataobject.orderProcess.OrderProcessDO;
 import com.lz.module.erp.dal.dataobject.orderVector.OrderVectorDO;
 import com.lz.module.erp.dal.mysql.orderVector.OrderVectorMapper;
+import com.lz.module.erp.service.orderProcess.OrderProcessService;
 import com.lz.module.infra.api.file.FileApi;
-import com.lz.module.infra.service.vector.ImageSearchService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
@@ -25,9 +27,10 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static com.lz.framework.common.exception.util.ServiceExceptionUtil.exception;
-import static com.lz.module.erp.enums.ErrorCodeConstants.ORDER_VECTOR_NOT_EXISTS;
+import static com.lz.module.erp.enums.ErrorCodeConstants.*;
 
 /**
  * 订单向量 Service 实现类
@@ -49,7 +52,7 @@ public class OrderVectorServiceImpl implements OrderVectorService {
     private FileApi fileApi;
 
     @Resource
-    private ImageSearchService imageSearchService;
+    private OrderProcessService orderProcessService;
 
     @Override
     public Long createOrderVector(OrderVectorSaveReqVO createReqVO) {
@@ -105,7 +108,7 @@ public class OrderVectorServiceImpl implements OrderVectorService {
     }
 
     @Override
-    public void indexOrderVector(String orderNo,String imageUrls) {
+    public void indexOrderVector(String orderNo, String imageUrls) {
         if (StrUtil.isEmpty(imageUrls)) {
             return;
         }
@@ -124,9 +127,56 @@ public class OrderVectorServiceImpl implements OrderVectorService {
         if (CollUtil.isEmpty(newImages)) {
             return;
         }
-        ArrayList<OrderVectorDO> vectorDOS = new ArrayList<>();
+        ArrayList<OrderVectorDO> vectorDOS = getVectorNewDos(orderNo, orderImages);
+        if (vectorDOS.isEmpty()) return;
+        orderVectorMapper.insertBatch(vectorDOS);
+    }
+
+    @Override
+    public void resetOrderVectorByOrderNo(String orderNo) {
+        if (StrUtil.isEmpty(orderNo)) {
+            throw exception(ORDER_PROCESS_NOT_EXISTS);
+        }
+        //先查询工序
+        OrderProcessDO process = orderProcessService.getOrderProcessByOrderNo(orderNo);
+        if (process == null) {
+            throw exception(ORDER_PROCESS_NOT_EXISTS);
+        }
+        String orderImage = process.getOrderImage();
+        if (StrUtil.isEmpty(orderImage)) {
+            throw exception(ORDER_PROCESS_NOT_IMAGE);
+        }
+        //根据订单no查询到当前已经拥有的向量信息,以便后面删除
+        List<OrderVectorDO> vectorOldDOS = orderVectorMapper.selectList(new LambdaQueryWrapper<OrderVectorDO>().eq(OrderVectorDO::getOrderNo, orderNo));
+        List<QueryResult> queryOldResults = imageIndexService.queryByOriginKey(orderNo, CollectionConstants.ERP_ORDER_IMAGE_VECTOR);
+
+        //使用分隔符||分割文件
+        String[] orderImages = orderImage.split("\\|\\|");
+        ArrayList<OrderVectorDO> vectorNewDOS = getVectorNewDos(orderNo, orderImages);
+        //先删除数据
+        if (!vectorOldDOS.isEmpty()) {
+            orderVectorMapper.deleteByIds(vectorOldDOS.stream().map(OrderVectorDO::getId).collect(Collectors.toSet()));
+        }
+        if (!queryOldResults.isEmpty()) {
+            imageIndexService.deleteByIds(queryOldResults.stream().map(QueryResult::getId).collect(Collectors.toList()), CollectionConstants.ERP_ORDER_IMAGE_VECTOR);
+        }
+        //插入新写的数据
+        if (!vectorNewDOS.isEmpty()) {
+            orderVectorMapper.insertBatch(vectorNewDOS);
+        }
+    }
+
+    /**
+     * 获取dos
+     * @param orderNo 订单编号
+     * @param orderImages 文件地址
+     * @return 向量do
+     */
+    private @NonNull ArrayList<OrderVectorDO> getVectorNewDos(String orderNo, String[] orderImages) {
+        //构建向量
+        ArrayList<OrderVectorDO> vectorNewDOS = new ArrayList<>();
         //为新图片构建向量并保存
-        for (String imageUrl : newImages) {
+        for (String imageUrl : orderImages) {
             OrderVectorDO orderVector = new OrderVectorDO();
             orderVector.setOrderNo(orderNo);
             orderVector.setImageUrl(imageUrl);
@@ -136,13 +186,12 @@ public class OrderVectorServiceImpl implements OrderVectorService {
                         orderNo, CollectionConstants.ERP_ORDER_IMAGE_VECTOR);
                 orderVector.setFeatureVector(Arrays.toString(vectorRecord.getVector()));
                 orderVector.setVectorId(vectorRecord.getId());
-                vectorDOS.add(orderVector);
+                vectorNewDOS.add(orderVector);
             } catch (Exception e) {
                 log.error("erp-订单工序构建向量失败，订单号：{},异常：{}", orderNo, e.getMessage());
             }
         }
-        if (vectorDOS.isEmpty()) return;
-        orderVectorMapper.insertBatch(vectorDOS);
+        return vectorNewDOS;
     }
 
     @Override
@@ -150,7 +199,7 @@ public class OrderVectorServiceImpl implements OrderVectorService {
         if (StrUtil.isEmpty(id)) {
             return List.of();
         }
-        return imageSearchService.searchById(id, topK == null ? 10 : topK,
+        return imageIndexService.searchById(id, topK == null ? 10 : topK,
                 CollectionConstants.ERP_ORDER_IMAGE_VECTOR);
     }
 
@@ -159,7 +208,7 @@ public class OrderVectorServiceImpl implements OrderVectorService {
         if (inputStream == null) {
             return List.of();
         }
-        return imageSearchService.searchByStream(inputStream, topK == null ? 10 : topK,
+        return imageIndexService.searchByStream(inputStream, topK == null ? 10 : topK,
                 CollectionConstants.ERP_ORDER_IMAGE_VECTOR);
     }
 }

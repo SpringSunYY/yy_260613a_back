@@ -8,7 +8,6 @@ import com.lz.framework.common.util.object.BeanUtils;
 import com.lz.framework.excel.core.util.ExcelUtils;
 import com.lz.module.erp.controller.admin.order.vo.*;
 import com.lz.module.erp.dal.dataobject.order.OrderDO;
-import com.lz.module.erp.dal.dataobject.order.OrderDetailDO;
 import com.lz.module.erp.service.order.OrderService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -197,4 +196,19 @@ public class OrderController {
         return success(BeanUtils.toBean(orderService.getOrderDetailListByOrderNo(orderNo), OrderDetailRespVo.class));
     }
 
+    // ===================== 统计 =====================
+
+    @GetMapping("/statistics")
+    @Operation(summary = "订单信息统计")
+    @PreAuthorize("@ss.hasPermission('erp:order:query')")
+    public CommonResult<List<OrderStatisticsRespVO>> getOrderStatistics(@Valid OrderPageReqVO pageReqVO) {
+       return success(orderService.getOrderStatistics(pageReqVO));
+    }
+
+    @GetMapping("/statistics/ship")
+    @Operation(summary = "订单信息统计")
+    @PreAuthorize("@ss.hasPermission('erp:order:query')")
+    public CommonResult<List<OrderStatisticsRespVO>> getShipOrderStatistics(@Valid OrderPageReqVO pageReqVO) {
+       return success(orderService.getOrderShipStatistics(pageReqVO));
+    }
 }

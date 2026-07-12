@@ -44,6 +44,12 @@ public class MilvusQuerier {
                 QueryCondition.builder().eq(PRIMARY_KEY, id).build(), withVector, collection));
     }
 
+
+    public List<QueryResult> queryByOriginKey(String originKey,String collection) {
+        return queryByCondition(
+                QueryCondition.builder().eq(ORIGIN_KEY, originKey).build(), false, collection
+        );
+    }
     public List<QueryResult> queryByImagePath(String imagePath, String collection) {
         if (imagePath == null || imagePath.isEmpty()) return Collections.emptyList();
         return queryByCondition(

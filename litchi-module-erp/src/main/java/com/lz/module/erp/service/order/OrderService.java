@@ -133,4 +133,18 @@ public interface OrderService {
      */
     List<OrderDetailDO> getOrderDetailListByOrderNo(String orderNo);
 
+    // ===================== 统计 =====================
+    /**
+     * 订单统计
+     * @param pageReqVO 查询
+     * @return 订单统计
+     */
+    List<OrderStatisticsRespVO> getOrderStatistics(@Valid OrderPageReqVO pageReqVO);
+
+    /**
+     * 订单发货统计
+     * @param pageReqVO 订单查询
+     * @return 订单发货统计
+     */
+    List<OrderStatisticsRespVO> getOrderShipStatistics(@Valid OrderPageReqVO pageReqVO);
 }

@@ -9,4 +9,11 @@
         文档可见：https://www.iocoder.cn/MyBatis/x-plugins/
      -->
 
+    <select id="getOrderStatistics"
+            resultType="com.lz.module.erp.controller.admin.order.vo.OrderStatisticsRespVO">
+        SELECT COUNT(id) AS total, specification AS name
+        FROM erp_order
+                 ${ew.customSqlSegment}
+        GROUP BY specification
+    </select>
 </mapper>
