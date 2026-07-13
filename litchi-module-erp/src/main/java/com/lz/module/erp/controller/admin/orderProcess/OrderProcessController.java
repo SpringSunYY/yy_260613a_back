@@ -6,10 +6,7 @@ import com.lz.framework.common.pojo.PageParam;
 import com.lz.framework.common.pojo.PageResult;
 import com.lz.framework.common.util.object.BeanUtils;
 import com.lz.framework.excel.core.util.ExcelUtils;
-import com.lz.module.erp.controller.admin.orderProcess.vo.OrderProcessExcelVO;
-import com.lz.module.erp.controller.admin.orderProcess.vo.OrderProcessPageReqVO;
-import com.lz.module.erp.controller.admin.orderProcess.vo.OrderProcessRespVO;
-import com.lz.module.erp.controller.admin.orderProcess.vo.OrderProcessSaveReqVO;
+import com.lz.module.erp.controller.admin.orderProcess.vo.*;
 import com.lz.module.erp.dal.dataobject.orderProcess.OrderProcessDO;
 import com.lz.module.erp.service.orderProcess.OrderProcessService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -128,6 +125,17 @@ public class OrderProcessController {
     public CommonResult<PageResult<OrderProcessRespVO>> getOrderProcessPage(@Valid OrderProcessPageReqVO pageReqVO) {
         PageResult<OrderProcessDO> pageResult = orderProcessService.getOrderProcessPage(pageReqVO);
         return success(BeanUtils.toBean(pageResult, OrderProcessRespVO.class));
+    }
+
+    /**
+     * 获取待排序工序
+     */
+    @GetMapping("/page/sort")
+    @Operation(summary = "获取待排序工序")
+    @PreAuthorize("@ss.hasPermission('erp:order-process:query')")
+    public CommonResult<PageResult<OrderProcessSortRespVO>> getSortProcessPage(@Valid OrderProcessPageReqVO pageReqVO) {
+        PageResult<OrderProcessSortRespVO> pageResult = orderProcessService.getSortProcessPage(pageReqVO);
+        return success(pageResult);
     }
 
     /**

@@ -152,6 +152,15 @@ public class OrderServiceImpl implements OrderService {
         validateOrderShip(shipReqVO);
     }
 
+    @Override
+    public void printOrder(String orderNo) {
+        //直接跟订单状态更新为已打印
+        LambdaUpdateWrapper<OrderDO> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.eq(OrderDO::getOrderNo, orderNo);
+        updateWrapper.set(OrderDO::getPrintStatus, ErpOrderPrintStatusEnum.ORDER_PRINT_STATUS_1.getStatus());
+        orderMapper.update(updateWrapper);
+    }
+
     /**
      * 更新工序
      *
@@ -262,6 +271,15 @@ public class OrderServiceImpl implements OrderService {
         List<OrderDetailDO> detailDOS = this.getOrderDetailListByOrderNo(orderNo);
         detailRespVO.setOrderDetails(BeanUtils.toBean(detailDOS, OrderDetailRespVo.class));
         return detailRespVO;
+    }
+
+    @Override
+    public List<OrderRespVO> getOrderByOrderNos(List<String> orderNos) {
+        if (orderNos.isEmpty()){
+            return List.of();
+        }
+        List<OrderDO> orderDOS = orderMapper.selectList(OrderDO::getOrderNo, orderNos);
+        return BeanUtils.toBean(orderDOS, OrderRespVO.class);
     }
 
     @Override

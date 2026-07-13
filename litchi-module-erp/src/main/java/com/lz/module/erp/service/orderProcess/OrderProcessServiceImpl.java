@@ -1,5 +1,6 @@
 package com.lz.module.erp.service.orderProcess;
 
+import cn.hutool.core.util.ObjUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.dynamic.datasource.annotation.DSTransactional;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
@@ -7,8 +8,11 @@ import com.lz.framework.common.pojo.PageResult;
 import com.lz.framework.common.util.object.BeanUtils;
 import com.lz.framework.security.core.service.SecurityFrameworkService;
 import com.lz.framework.security.core.util.SecurityFrameworkUtils;
+import com.lz.module.erp.controller.admin.order.vo.OrderRespVO;
 import com.lz.module.erp.controller.admin.orderProcess.vo.OrderProcessPageReqVO;
+import com.lz.module.erp.controller.admin.orderProcess.vo.OrderProcessRespVO;
 import com.lz.module.erp.controller.admin.orderProcess.vo.OrderProcessSaveReqVO;
+import com.lz.module.erp.controller.admin.orderProcess.vo.OrderProcessSortRespVO;
 import com.lz.module.erp.controller.admin.orderProcessHistory.vo.OrderProcessHistorySaveReqVO;
 import com.lz.module.erp.dal.dataobject.order.OrderDO;
 import com.lz.module.erp.dal.dataobject.orderProcess.OrderProcessDO;
@@ -26,6 +30,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -146,6 +151,32 @@ public class OrderProcessServiceImpl implements OrderProcessService {
             orderDO.setCreator(userSimpMap.getOrDefault(orderDO.getCreator(), new AdminUserSimpRespDTO()).getNickname());
         });
         return orderProcessDOPageResult;
+    }
+
+    @Override
+    public PageResult<OrderProcessSortRespVO> getSortProcessPage(OrderProcessPageReqVO pageReqVO) {
+        PageResult<OrderProcessDO> orderProcessDOPageResult = orderProcessMapper.selectPage(pageReqVO);
+        PageResult<OrderProcessSortRespVO> pageResult = new PageResult<>();
+        if (ObjUtil.isNull(orderProcessDOPageResult)||orderProcessDOPageResult.getList().isEmpty()){
+            return pageResult;
+        }
+        List<OrderProcessDO> doPageResultList = orderProcessDOPageResult.getList();
+        List<OrderProcessSortRespVO> respVOS = BeanUtils.toBean(doPageResultList, OrderProcessSortRespVO.class);
+        //拿到所有的订单编号
+        List<String> orderNos = respVOS.stream().map(OrderProcessSortRespVO::getOrderNo).toList();
+        List<OrderRespVO> orderRespVOS= orderService.getOrderByOrderNos(orderNos);
+        //根据orderNo转为map<orderNo,OrderRespVO>赋值给respVos
+        Map<String, OrderRespVO> orderRespVOMap = new HashMap<>();
+        for (OrderRespVO orderRespVO : orderRespVOS) {
+            orderRespVOMap.put(orderRespVO.getOrderNo(),orderRespVO);
+        }
+        for (OrderProcessSortRespVO respVO : respVOS) {
+            OrderRespVO orDefault = orderRespVOMap.getOrDefault(respVO.getOrderNo(), new OrderRespVO());
+            BeanUtils.copyProperties(orDefault,respVO);
+        }
+        pageResult.setList(respVOS);
+        pageResult.setTotal(orderProcessDOPageResult.getTotal());
+        return pageResult;
     }
 
     @Override

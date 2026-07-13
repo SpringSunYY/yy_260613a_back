@@ -8,6 +8,7 @@ import com.lz.module.erp.dal.dataobject.order.OrderDetailDO;
 import jakarta.validation.Valid;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 订单信息 Service 接口
@@ -50,6 +51,11 @@ public interface OrderService {
      * 订单发货
      */
     void shipOrder( OrderShipReqVO shipReqVO);
+
+    /**
+     * 打印订单
+     */
+    void printOrder(String orderNo);
 
 
     /**
@@ -100,6 +106,14 @@ public interface OrderService {
     OrderDetailVO getOrderDetailByNo(String orderNo);
 
     /**
+     * 批量获得订单信息
+     *
+     * @param orderNos 工单号列表
+     * @return 工单信息列表
+     */
+    List<OrderRespVO> getOrderByOrderNos(List<String> orderNos);
+
+    /**
      * 获得订单信息分页
      *
      * @param pageReqVO 分页查询
@@ -147,4 +161,5 @@ public interface OrderService {
      * @return 订单发货统计
      */
     List<OrderStatisticsRespVO> getOrderShipStatistics(@Valid OrderPageReqVO pageReqVO);
+
 }

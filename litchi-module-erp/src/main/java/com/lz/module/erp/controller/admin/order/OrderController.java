@@ -1,11 +1,13 @@
 package com.lz.module.erp.controller.admin.order;
 
+import cn.hutool.core.util.StrUtil;
 import com.lz.framework.apilog.core.annotation.ApiAccessLog;
 import com.lz.framework.common.pojo.CommonResult;
 import com.lz.framework.common.pojo.PageParam;
 import com.lz.framework.common.pojo.PageResult;
 import com.lz.framework.common.util.object.BeanUtils;
 import com.lz.framework.excel.core.util.ExcelUtils;
+import com.lz.framework.security.core.util.SecurityFrameworkUtils;
 import com.lz.module.erp.controller.admin.order.vo.*;
 import com.lz.module.erp.dal.dataobject.order.OrderDO;
 import com.lz.module.erp.service.order.OrderService;
@@ -25,11 +27,6 @@ import java.util.List;
 import static com.lz.framework.apilog.core.enums.OperateTypeEnum.EXPORT;
 import static com.lz.framework.common.pojo.CommonResult.success;
 
-/**
- * 订单信息 Controller
- *
- * @author 荔枝软件
- */
 @Tag(name = "管理后台 - 订单信息")
 @RestController
 @RequestMapping("/erp/order")
@@ -71,6 +68,19 @@ public class OrderController {
         return success(true);
     }
 
+    /**
+     * 打印
+     */
+    @PutMapping("/print")
+    @Operation(summary = "打印订单信息")
+    @PreAuthorize("@ss.hasPermission('erp:order:update')")
+    public CommonResult<Boolean> printOrder(@RequestBody OrderSaveReqVO reqVO) {
+        if (StrUtil.isEmpty(reqVO.getOrderNo())){
+            return success(false);
+        }
+        orderService.printOrder(reqVO.getOrderNo());
+        return success(true);
+    }
     /**
      * 提交审核订单信息
      */

@@ -2,7 +2,9 @@ package com.lz.module.erp.service.orderProcess;
 
 import com.lz.framework.common.pojo.PageResult;
 import com.lz.module.erp.controller.admin.orderProcess.vo.OrderProcessPageReqVO;
+import com.lz.module.erp.controller.admin.orderProcess.vo.OrderProcessRespVO;
 import com.lz.module.erp.controller.admin.orderProcess.vo.OrderProcessSaveReqVO;
+import com.lz.module.erp.controller.admin.orderProcess.vo.OrderProcessSortRespVO;
 import com.lz.module.erp.dal.dataobject.orderProcess.OrderProcessDO;
 import jakarta.validation.Valid;
 
@@ -68,6 +70,8 @@ public interface OrderProcessService {
      * @return 订单工序分页
      */
     PageResult<OrderProcessDO> getOrderProcessPage(OrderProcessPageReqVO pageReqVO);
+
+    PageResult<OrderProcessSortRespVO> getSortProcessPage(@Valid OrderProcessPageReqVO pageReqVO);
 
 
     /**
