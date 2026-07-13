@@ -10,7 +10,6 @@ import com.lz.framework.security.core.service.SecurityFrameworkService;
 import com.lz.framework.security.core.util.SecurityFrameworkUtils;
 import com.lz.module.erp.controller.admin.order.vo.OrderRespVO;
 import com.lz.module.erp.controller.admin.orderProcess.vo.OrderProcessPageReqVO;
-import com.lz.module.erp.controller.admin.orderProcess.vo.OrderProcessRespVO;
 import com.lz.module.erp.controller.admin.orderProcess.vo.OrderProcessSaveReqVO;
 import com.lz.module.erp.controller.admin.orderProcess.vo.OrderProcessSortRespVO;
 import com.lz.module.erp.controller.admin.orderProcessHistory.vo.OrderProcessHistorySaveReqVO;
@@ -172,7 +171,10 @@ public class OrderProcessServiceImpl implements OrderProcessService {
         }
         for (OrderProcessSortRespVO respVO : respVOS) {
             OrderRespVO orDefault = orderRespVOMap.getOrDefault(respVO.getOrderNo(), new OrderRespVO());
-            BeanUtils.copyProperties(orDefault,respVO);
+            respVO.setExceptShippingTime(orDefault.getExceptShippingTime());
+            respVO.setOrderTime(orDefault.getOrderTime());
+            respVO.setNumber(orDefault.getNumber());
+            respVO.setOrderStatus(orDefault.getOrderStatus());
         }
         pageResult.setList(respVOS);
         pageResult.setTotal(orderProcessDOPageResult.getTotal());

@@ -68,15 +68,15 @@ public class OrderAuditServiceImpl implements OrderAuditService {
         }
         // 插入
         OrderAuditDO orderAudit = BeanUtils.toBean(createReqVO, OrderAuditDO.class);
-        //原来的状态
-        orderAudit.setOldAuditStatus(orderByOrderNo.getOrderStatus());
+        //原来的审核状态
+        orderAudit.setOldAuditStatus(orderByOrderNo.getAuditStatus());
         orderAuditMapper.insert(orderAudit);
         //更新订单审核状态
         //如果是同意更新工序为待排版
         if (orderAudit.getAuditStatus().equals(ErpOrderAuditStatusEnum.ORDER_AUDIT_STATUS_3.getStatus())) {
             orderByOrderNo.setCurrentProcess(ErpOrderCurrentProcessEnum.ORDER_CURRENT_PROCESS_2.getStatus());
-            //更新工序
-            orderProcessService.updateProcessToTargetProcessByNo(orderByOrderNo.getOrderNo(),orderByOrderNo.getCurrentProcess(), ErpOrderCurrentProcessEnum.ORDER_CURRENT_PROCESS_2.getStatus());
+            //更新工序，默认就是草稿
+            orderProcessService.updateProcessToTargetProcessByNo(orderByOrderNo.getOrderNo(),ErpOrderCurrentProcessEnum.ORDER_CURRENT_PROCESS_1.getStatus(), ErpOrderCurrentProcessEnum.ORDER_CURRENT_PROCESS_2.getStatus());
         }
         orderByOrderNo.setAuditStatus(orderAudit.getAuditStatus());
         orderService.updateOrder(orderByOrderNo);

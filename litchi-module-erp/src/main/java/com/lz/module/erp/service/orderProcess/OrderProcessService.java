@@ -71,6 +71,12 @@ public interface OrderProcessService {
      */
     PageResult<OrderProcessDO> getOrderProcessPage(OrderProcessPageReqVO pageReqVO);
 
+    /**
+     * 获得订单工序排序分页
+     *
+     * @param pageReqVO 分页查询
+     * @return 订单工序分页
+     */
     PageResult<OrderProcessSortRespVO> getSortProcessPage(@Valid OrderProcessPageReqVO pageReqVO);
 
 
