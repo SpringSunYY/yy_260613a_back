@@ -8,6 +8,7 @@ import cn.hutool.crypto.digest.DigestUtil;
 import com.google.common.annotations.VisibleForTesting;
 import com.lz.framework.common.pojo.PageResult;
 import com.lz.framework.common.util.object.BeanUtils;
+import com.lz.framework.mybatis.core.query.LambdaQueryWrapperX;
 import com.lz.framework.tenant.core.util.TenantUtils;
 import com.lz.module.infra.constants.FileConstants;
 import com.lz.module.infra.controller.admin.file.vo.file.*;
@@ -267,7 +268,7 @@ public class FileServiceImpl implements FileService {
         try {
             String configKey = getFileConfigByPath(path);
             path = StrUtil.subAfter(path, "/get/", false);
-            
+
             return this.getFileContent(configKey, path);
         } catch (Exception e) {
             log.error("[getFileContent][path({}) 获得 FileConfigDO 失败]", path, e);
@@ -371,6 +372,14 @@ public class FileServiceImpl implements FileService {
             }
         }
         return existed;
+    }
+
+    @Override
+    public List<FileDO> getFileSimpList(List<Long> fileIds) {
+        LambdaQueryWrapperX<FileDO> queryWrapper = new LambdaQueryWrapperX<>();
+        queryWrapper.inIfPresent(FileDO::getId, fileIds);
+        queryWrapper.select(FileDO::getId, FileDO::getName, FileDO::getRelativePath);
+       return fileMapper.selectList(queryWrapper);
     }
 
     public FileDO getFileByFileName(String originalFilename) {

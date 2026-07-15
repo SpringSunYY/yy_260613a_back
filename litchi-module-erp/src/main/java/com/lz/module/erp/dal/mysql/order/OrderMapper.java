@@ -34,6 +34,10 @@ public interface OrderMapper extends BaseMapperX<OrderDO> {
     default LambdaQueryWrapperX<OrderDO> builderQueryConditions(OrderPageReqVO reqVO) {
         return new LambdaQueryWrapperX<OrderDO>()
                 .likeIfPresent(OrderDO::getName, reqVO.getName())
+                .betweenIfPresent(OrderDO::getLoan, reqVO.getLoan())
+                .eqIfPresent(OrderDO::getLoanStatus, reqVO.getLoanStatus())
+                .betweenIfPresent(OrderDO::getPostage, reqVO.getPostage())
+                .eqIfPresent(OrderDO::getPostageStatus, reqVO.getPostageStatus())
                 .eqIfPresent(OrderDO::getOrderNo, reqVO.getOrderNo())
                 .betweenIfPresent(OrderDO::getOrderTime, reqVO.getOrderTime())
                 .eqIfPresent(OrderDO::getOrderResource, reqVO.getOrderResource())
@@ -73,4 +77,20 @@ public interface OrderMapper extends BaseMapperX<OrderDO> {
         queryWrapperX.eq(OrderDO::getAuditStatus, ErpOrderAuditStatusEnum.ORDER_AUDIT_STATUS_3.getStatus());
         return getOrderStatistics(queryWrapperX);
     };
+
+    default List<OrderStatisticsRespVO> getOrderLoanStatistics(OrderPageReqVO pageReqVO){
+        LambdaQueryWrapperX<OrderDO> queryWrapperX = builderQueryConditions(pageReqVO);
+        return getOrderLoanStatisticsByLoanStatus();
+    }
+
+    List<OrderStatisticsRespVO> getOrderLoanStatisticsByLoanStatus();
+
+    default List<OrderStatisticsRespVO> getOrderPostageStatistics(OrderPageReqVO pageReqVO){
+        LambdaQueryWrapperX<OrderDO> queryWrapperX = builderQueryConditions(pageReqVO);
+        return getOrderPostageStatisticsByPostageStatus();
+    }
+
+    List<OrderStatisticsRespVO> getOrderPostageStatisticsByPostageStatus();
+
+    ;
 }

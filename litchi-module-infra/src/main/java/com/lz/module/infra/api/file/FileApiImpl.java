@@ -2,10 +2,15 @@ package com.lz.module.infra.api.file;
 
 import cn.hutool.core.util.StrUtil;
 import com.lz.framework.common.util.collection.ArrayUtils;
+import com.lz.module.infra.api.file.dto.FileSimpVo;
+import com.lz.module.infra.controller.admin.file.vo.file.FileUploadRespVO;
+import com.lz.module.infra.dal.dataobject.file.FileDO;
 import com.lz.module.infra.service.file.FileService;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
+
+import java.util.List;
 
 import static com.lz.module.infra.constants.FileConstants.FILE_GET_PATH_PREFIX;
 
@@ -40,17 +45,38 @@ public class FileApiImpl implements FileApi {
         //例如/admin-api/infra/file/database/get/2026/06/05/首次询单避免限流步骤_1780649396286.docx&segmentMaxTokens=500
         //拿到get前的database
         String[] split = pathStr.split("/get/");
-        if (ArrayUtils.isEmpty( split)|| split.length < 2) {
+        if (ArrayUtils.isEmpty(split) || split.length < 2) {
             return null;
         }
         String configKey = split[0];
         String filePath = split[1];
-       return fileService.buildFileAccessUrl(configKey, filePath);
+        return fileService.buildFileAccessUrl(configKey, filePath);
     }
 
     @Override
     public byte[] getFileContent(String path) {
         return fileService.getFileContent(path);
+    }
+
+    @Override
+    public FileSimpVo createFileReturnFileSimpVo(byte[] content, String moduleType) {
+        FileUploadRespVO fileUploadRespVO = fileService.createFile(content, null, null, null, moduleType);
+        return new FileSimpVo(fileUploadRespVO.getId(), fileUploadRespVO.getName(), fileUploadRespVO.getUrl());
+
+    }
+
+    @Override
+    public void deleteFile(Long fileId) throws Exception {
+        fileService.deleteFile(fileId);
+    }
+
+    @Override
+    public List<FileSimpVo> getFileSimpList(List<Long> fileIds) {
+        List<FileDO> fileSimpList = fileService.getFileSimpList(fileIds);
+        return fileSimpList.stream()
+                .map(fileDO ->
+                        new FileSimpVo(fileDO.getId(), fileDO.getName(), fileDO.getRelativePath()))
+                .toList();
     }
 
 

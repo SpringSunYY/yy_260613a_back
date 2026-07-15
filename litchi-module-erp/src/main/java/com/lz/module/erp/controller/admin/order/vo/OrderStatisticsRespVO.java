@@ -24,7 +24,7 @@ public class OrderStatisticsRespVO {
      * 数量
      */
     @Schema(description = "总数", requiredMode = Schema.RequiredMode.REQUIRED)
-    private Integer total;
+    private Float total;
 
 
 }

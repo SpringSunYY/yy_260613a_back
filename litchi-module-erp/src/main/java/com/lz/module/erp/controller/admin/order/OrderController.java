@@ -57,6 +57,14 @@ public class OrderController {
         return success(true);
     }
 
+    @PostMapping("/update/print-image")
+    @Operation(summary = "更新订单信息-打印图片")
+    @PreAuthorize("@ss.hasPermission('erp:order:update')")
+    public CommonResult<Boolean> updateOrderPrintImage(@Valid OrderUpdatePrintImageReqVO reqVO) {
+        orderService.updateOrderPrintImage(reqVO);
+        return success(true);
+    }
+
     /**
      * 发货
      */
@@ -216,9 +224,23 @@ public class OrderController {
     }
 
     @GetMapping("/statistics/ship")
-    @Operation(summary = "订单信息统计")
+    @Operation(summary = "订单信息统计-发货")
     @PreAuthorize("@ss.hasPermission('erp:order:query')")
     public CommonResult<List<OrderStatisticsRespVO>> getShipOrderStatistics(@Valid OrderPageReqVO pageReqVO) {
        return success(orderService.getOrderShipStatistics(pageReqVO));
+    }
+
+    @GetMapping("/statistics/loan")
+    @Operation(summary = "订单信息统计-贷款")
+    @PreAuthorize("@ss.hasPermission('erp:order:query')")
+    public CommonResult<List<OrderStatisticsRespVO>> getOrderLoanStatistics(@Valid OrderPageReqVO pageReqVO) {
+       return success(orderService.getOrderLoanStatistics(pageReqVO));
+    }
+
+    @GetMapping("/statistics/postage")
+    @Operation(summary = "订单信息统计-邮费")
+    @PreAuthorize("@ss.hasPermission('erp:order:query')")
+    public CommonResult<List<OrderStatisticsRespVO>> getOrderPostageStatistics(@Valid OrderPageReqVO pageReqVO) {
+       return success(orderService.getOrderPostageStatistics(pageReqVO));
     }
 }

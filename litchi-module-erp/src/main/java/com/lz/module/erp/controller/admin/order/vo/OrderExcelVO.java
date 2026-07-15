@@ -12,6 +12,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 import org.springframework.format.annotation.DateTimeFormat;
+
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
@@ -88,6 +90,46 @@ public class OrderExcelVO {
     @I18nNotEmpty(i18nKey = "erp.order.back.currentProcess.notEmpty", message = "当前工序不能为空")
     private String currentProcess;
 
+    /**
+     * 贷款
+     */
+    @ExcelProperty("贷款")
+    @ExcelI18n(i18nKey = "erp.order.field.loan")
+    @I18nNotNull(i18nKey = "erp.order.back.loan.notNull", message = "贷款不能为空")
+    private BigDecimal loan;
+
+    /**
+     * 贷款状态
+     */
+    @ExcelProperty(value = "贷款状态", converter = DictConvert.class)
+    @ExcelColumnSelect(dictType = "erp_postage_status", i18n = true)
+    @ExcelI18n(i18nKey = "erp.order.field.loanStatus")
+    @I18nNotEmpty(i18nKey = "erp.order.back.loanStatus.notEmpty", message = "贷款状态不能为空")
+    private String loanStatus;
+
+    /**
+     * 邮费
+     */
+    @ExcelProperty("邮费")
+    @ExcelI18n(i18nKey = "erp.order.field.postage")
+    @I18nNotNull(i18nKey = "erp.order.back.postage.notNull", message = "邮费不能为空")
+    private BigDecimal postage;
+
+    /**
+     * 邮费状态
+     */
+    @ExcelProperty(value = "邮费状态", converter = DictConvert.class)
+    @ExcelColumnSelect(dictType = "erp_loan_status", i18n = true)
+    @ExcelI18n(i18nKey = "erp.order.field.postageStatus")
+    @I18nNotEmpty(i18nKey = "erp.order.back.postageStatus.notEmpty", message = "邮费状态不能为空")
+    private String postageStatus;
+
+    /**
+     * 打印图片
+     */
+    @ExcelProperty("打印图片")
+    @ExcelI18n(i18nKey = "erp.order.field.printImage")
+    private String printImage;
 
     /**
     * 客户

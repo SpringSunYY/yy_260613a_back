@@ -57,7 +57,12 @@ public interface OrderService {
      */
     void printOrder(String orderNo);
 
-
+    /**
+     * 更新打印图片
+     * @param reqVO 请求对象
+     * @return 订单打印统计
+     */
+    void updateOrderPrintImage(@Valid OrderUpdatePrintImageReqVO reqVO);
     /**
      * 删除订单信息
      *
@@ -161,5 +166,19 @@ public interface OrderService {
      * @return 订单发货统计
      */
     List<OrderStatisticsRespVO> getOrderShipStatistics(@Valid OrderPageReqVO pageReqVO);
+
+    /**
+     * 订单贷款统计
+     * @param pageReqVO 订单查询
+     * @return 订单贷款统计
+     */
+    List<OrderStatisticsRespVO> getOrderLoanStatistics(@Valid OrderPageReqVO pageReqVO);
+
+    /**
+     * 订单邮费统计
+     * @param pageReqVO 订单查询
+     * @return 订单邮费统计
+     */
+    List<OrderStatisticsRespVO> getOrderPostageStatistics(@Valid OrderPageReqVO pageReqVO);
 
 }

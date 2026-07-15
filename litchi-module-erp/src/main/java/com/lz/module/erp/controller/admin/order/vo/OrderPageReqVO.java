@@ -1,6 +1,8 @@
 package com.lz.module.erp.controller.admin.order.vo;
 
 import lombok.*;
+
+import java.math.BigDecimal;
 import java.util.*;
 import io.swagger.v3.oas.annotations.media.Schema;
 import com.lz.framework.common.pojo.PageParam;
@@ -67,8 +69,33 @@ public class OrderPageReqVO extends PageParam {
     private String currentProcess;
 
     /**
-    * 出货日期
-    */
+     * 贷款
+     */
+    @Sortable(value = "loan")
+    @I18nSize(i18nKey = "erp.order.back.loan.size", min = 0, max = 2, message = "贷款长度不能超过2")
+    @Schema(description = "贷款")
+    private BigDecimal[] loan;
+
+
+    /**
+     * 贷款状态
+     */
+    @Schema(description = "贷款状态", example = "2")
+    private String loanStatus;
+
+    /**
+     * 邮费
+     */
+    @Sortable(value = "postage")
+    @I18nSize(i18nKey = "erp.order.back.postage.size", min = 0, max = 2, message = "邮费长度不能超过2")
+    @Schema(description = "邮费")
+    private BigDecimal[] postage;
+
+    /**
+     * 邮费状态
+     */
+    @Schema(description = "邮费状态", example = "1")
+    private String postageStatus;
 
     /**
     * 客户

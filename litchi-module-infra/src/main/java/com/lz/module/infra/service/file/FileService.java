@@ -141,4 +141,11 @@ public interface FileService {
      * @return 已经存在的文件名（小写敏感 — 与 DB 列 {@code infra_file.name} 一致）
      */
     java.util.Set<String> getExistingFileNames(java.util.Collection<String> fileNames);
+
+    /**
+     * 获得文件列表
+     *
+     * @param fileIds 文件编号列表
+     */
+    List<FileDO> getFileSimpList(List<Long> fileIds);
 }

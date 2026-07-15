@@ -1,6 +1,9 @@
 package com.lz.module.infra.api.file;
 
+import com.lz.module.infra.api.file.dto.FileSimpVo;
 import jakarta.validation.constraints.NotEmpty;
+
+import java.util.List;
 
 /**
  * 文件 API 接口
@@ -67,4 +70,19 @@ public interface FileApi {
      * 获取文件内容
      */
     byte[] getFileContent(@NotEmpty(message = "文件路径不能为空") String path);
+
+    /**
+     * 创建文件返回文件保存信息
+     */
+    FileSimpVo createFileReturnFileSimpVo(byte[] content, String moduleType);
+
+    /**
+     * 删除文件
+     */
+    void deleteFile(Long fileId) throws Exception;
+
+    /**
+     * 获取文件保存信息
+     */
+    List<FileSimpVo> getFileSimpList(List<Long> fileIds);
 }

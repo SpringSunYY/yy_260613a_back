@@ -16,4 +16,16 @@
                  ${ew.customSqlSegment}
         GROUP BY specification
     </select>
+    <select id="getOrderLoanStatisticsByLoanStatus"
+            resultType="com.lz.module.erp.controller.admin.order.vo.OrderStatisticsRespVO">
+        select sum(loan) AS total, loan_status AS name
+        from erp_order ${ew.customSqlSegment}
+        group by loan_status
+    </select>
+    <select id="getOrderPostageStatisticsByPostageStatus"
+            resultType="com.lz.module.erp.controller.admin.order.vo.OrderStatisticsRespVO">
+        select sum(postage) AS total, postage_status AS name
+        from erp_order ${ew.customSqlSegment}
+        group by postage_status
+    </select>
 </mapper>

@@ -1,8 +1,11 @@
 package com.lz.module.erp.controller.admin.order.vo;
 
+import com.lz.framework.common.annotation.Sortable;
+import com.lz.framework.common.validation.i18n.I18nSize;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
@@ -62,6 +65,35 @@ public class OrderRespVO {
     @Schema(description = "当前工序", requiredMode = Schema.RequiredMode.REQUIRED)
     private String currentProcess;
 
+    /**
+     * 贷款
+     */
+    @Schema(description = "贷款")
+    private BigDecimal loan;
+
+    /**
+     * 贷款状态
+     */
+    @Schema(description = "贷款状态", example = "2")
+    private String loanStatus;
+
+    /**
+     * 邮费
+     */
+    @Schema(description = "邮费")
+    private BigDecimal postage;
+
+    /**
+     * 邮费状态
+     */
+    @Schema(description = "邮费状态", example = "1")
+    private String postageStatus;
+
+    /**
+     * 打印图片
+     */
+    @Schema(description = "打印图片")
+    private String printImage;
 
     /**
      * 客户

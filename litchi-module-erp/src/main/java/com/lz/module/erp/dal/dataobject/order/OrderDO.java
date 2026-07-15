@@ -1,6 +1,8 @@
 package com.lz.module.erp.dal.dataobject.order;
 
 import lombok.*;
+
+import java.math.BigDecimal;
 import java.util.*;
 import java.time.LocalDateTime;
 import java.time.LocalDateTime;
@@ -67,6 +69,30 @@ public class OrderDO extends BaseDO {
      * 枚举 {@link TODO erp_order_current_process 对应的类}
      */
     private String currentProcess;
+    /**
+     * 贷款
+     */
+    private BigDecimal loan;
+    /**
+     * 贷款状态
+     *
+     * 枚举 {@link TODO erp_postage_status 对应的类}
+     */
+    private String loanStatus;
+    /**
+     * 邮费
+     */
+    private BigDecimal postage;
+    /**
+     * 邮费状态
+     *
+     * 枚举 {@link TODO erp_loan_status 对应的类}
+     */
+    private String postageStatus;
+    /**
+     * 打印图片
+     */
+    private String printImage;
     /**
      * 客户
      */

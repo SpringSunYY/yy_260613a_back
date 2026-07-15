@@ -4,6 +4,7 @@ import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.ObjUtil;
 import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.StrUtil;
+import com.anji.captcha.util.StringUtils;
 import com.baomidou.dynamic.datasource.annotation.DSTransactional;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.lz.framework.common.biz.system.dict.DictDataCommonApi;
@@ -26,6 +27,8 @@ import com.lz.module.erp.enums.ErpOrderCurrentProcessEnum;
 import com.lz.module.erp.enums.ErpOrderPrintStatusEnum;
 import com.lz.module.erp.service.orderProcess.OrderProcessService;
 import com.lz.module.erp.service.orderVector.OrderVectorService;
+import com.lz.module.infra.api.file.FileApi;
+import com.lz.module.infra.api.file.dto.FileSimpVo;
 import com.lz.module.system.api.user.AdminUserApi;
 import com.lz.module.system.api.user.dto.AdminUserSimpRespDTO;
 import jakarta.annotation.Resource;
@@ -35,6 +38,7 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.validation.annotation.Validated;
 
 import java.util.Comparator;
@@ -76,6 +80,12 @@ public class OrderServiceImpl implements OrderService {
 
     @Resource
     private DictDataCommonApi dictDataCommonApi;
+
+    @Resource
+    private FileApi fileApi;
+
+    @Resource
+    private TransactionTemplate transactionTemplate;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -159,6 +169,41 @@ public class OrderServiceImpl implements OrderService {
         updateWrapper.eq(OrderDO::getOrderNo, orderNo);
         updateWrapper.set(OrderDO::getPrintStatus, ErpOrderPrintStatusEnum.ORDER_PRINT_STATUS_1.getStatus());
         orderMapper.update(updateWrapper);
+    }
+
+    @Override
+    public void updateOrderPrintImage(OrderUpdatePrintImageReqVO reqVO) {
+        if (ObjUtil.isNull(reqVO.getFile()) || StrUtil.isEmpty(reqVO.getOrderNo())) {
+            return;
+        }
+
+        //首先查询订单
+        OrderDO orderDO = orderMapper.selectOne(OrderDO::getOrderNo, reqVO.getOrderNo());
+        if (orderDO == null) {
+            throw exception(ORDER_EXISTS);
+        }
+        try {
+            Long fileId = StrUtil.isEmpty(orderDO.getPrintImage()) ? null : Long.valueOf(orderDO.getPrintImage());
+
+            byte[] bytes = reqVO.getFile().getBytes();
+            FileSimpVo erp = fileApi.createFileReturnFileSimpVo(bytes, "erp");
+            orderDO.setPrintImage(erp.getId().toString());
+            transactionTemplate.executeWithoutResult(result -> {
+                orderMapper.updateById(orderDO);
+
+                //如果有文件了
+                if (ObjUtil.isNotNull(fileId)) {
+                    try {
+                        fileApi.deleteFile(fileId);
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+
+            });
+        } catch (Exception e) {
+            log.error("订单信息，打印图片删除失败", e);
+        }
     }
 
     /**
@@ -275,7 +320,7 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public List<OrderRespVO> getOrderByOrderNos(List<String> orderNos) {
-        if (orderNos.isEmpty()){
+        if (orderNos.isEmpty()) {
             return List.of();
         }
         List<OrderDO> orderDOS = orderMapper.selectList(OrderDO::getOrderNo, orderNos);
@@ -298,7 +343,7 @@ public class OrderServiceImpl implements OrderService {
         //构建创建人
         //提取所有的创建人
         List<String> creatorIds = orderDOPageResult.getList()
-                .stream().map(OrderDO::getCreator).distinct().toList();
+                .stream().map(OrderDO::getCreator).filter(StringUtils::isNotEmpty).distinct().toList();
         List<AdminUserSimpRespDTO> userSimpList = adminUserApi.getUserSimpList(creatorIds);
         //根据id转为map
         Map<String, AdminUserSimpRespDTO> userSimpMap = userSimpList.stream()
@@ -306,6 +351,23 @@ public class OrderServiceImpl implements OrderService {
         orderDOPageResult.getList().forEach(orderDO -> {
             orderDO.setCreator(userSimpMap.getOrDefault(orderDO.getCreator(), new AdminUserSimpRespDTO()).getNickname());
         });
+        //提取出所有的文件
+        List<String> fileIds = orderDOPageResult.getList()
+                .stream().map(OrderDO::getPrintImage).filter(StringUtils::isNotEmpty).distinct().toList();
+        try {
+            //把文件ids转为long
+            List<Long> fileIdsLong = fileIds.stream().map(Long::parseLong).toList();
+            List<FileSimpVo> fileSimpVos = fileApi.getFileSimpList(fileIdsLong);
+            //把结果转为map，key为文件id，value为文件simp，key要toString
+            Map<String, FileSimpVo> fileSimpMap = fileSimpVos.stream()
+                    .collect(Collectors.toMap(k -> k.getId().toString(),
+                            v -> v));
+            orderDOPageResult.getList().forEach(orderDO -> {
+                orderDO.setPrintImage(fileSimpMap.getOrDefault(orderDO.getPrintImage(), new FileSimpVo()).getRelativePath());
+            });
+        } catch (Exception e) {
+            log.error("文件转换失败：{}", e.getMessage());
+        }
         return orderDOPageResult;
     }
 
@@ -393,6 +455,16 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public List<OrderStatisticsRespVO> getOrderShipStatistics(OrderPageReqVO pageReqVO) {
         return orderMapper.getOrderShipStatistics(pageReqVO);
+    }
+
+    @Override
+    public List<OrderStatisticsRespVO> getOrderLoanStatistics(OrderPageReqVO pageReqVO) {
+        return orderMapper.getOrderLoanStatistics(pageReqVO);
+    }
+
+    @Override
+    public List<OrderStatisticsRespVO> getOrderPostageStatistics(OrderPageReqVO pageReqVO) {
+        return orderMapper.getOrderPostageStatistics(pageReqVO);
     }
 
     private void validateOrderShip(OrderShipReqVO reqVO) {

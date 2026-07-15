@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import lombok.Data;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -75,6 +76,35 @@ public class OrderSaveReqVO {
     @Schema(description = "当前工序", requiredMode = Schema.RequiredMode.REQUIRED)
 //    @I18nNotEmpty(i18nKey = "erp.order.back.currentProcess.notEmpty", message = "当前工序不能为空")
     private String currentProcess;
+
+    /**
+     * 贷款
+     */
+    @Schema(description = "贷款", requiredMode = Schema.RequiredMode.REQUIRED)
+    @I18nNotNull(i18nKey = "erp.order.back.loan.notNull", message = "贷款不能为空")
+    private BigDecimal loan;
+
+    /**
+     * 贷款状态
+     */
+    @Schema(description = "贷款状态", requiredMode = Schema.RequiredMode.REQUIRED, example = "2")
+    @I18nNotEmpty(i18nKey = "erp.order.back.loanStatus.notEmpty", message = "贷款状态不能为空")
+    private String loanStatus;
+
+    /**
+     * 邮费
+     */
+    @Schema(description = "邮费", requiredMode = Schema.RequiredMode.REQUIRED)
+    @I18nNotNull(i18nKey = "erp.order.back.postage.notNull", message = "邮费不能为空")
+    private BigDecimal postage;
+
+    /**
+     * 邮费状态
+     */
+    @Schema(description = "邮费状态", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
+    @I18nNotEmpty(i18nKey = "erp.order.back.postageStatus.notEmpty", message = "邮费状态不能为空")
+    private String postageStatus;
+
 
 
     /**
