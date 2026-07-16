@@ -31,6 +31,12 @@ public class OrderProcessSaveReqVO {
     private String currentProcess;
 
     /**
+     * 订单状态
+     */
+    @Schema(description = "订单状态", example = "1")
+    private String orderStatus;
+
+    /**
      * 订单号
      */
     @Schema(description = "订单号", requiredMode = Schema.RequiredMode.REQUIRED)

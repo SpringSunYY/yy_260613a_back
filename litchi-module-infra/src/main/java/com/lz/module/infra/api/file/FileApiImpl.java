@@ -10,6 +10,7 @@ import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static com.lz.module.infra.constants.FileConstants.FILE_GET_PATH_PREFIX;
@@ -72,6 +73,9 @@ public class FileApiImpl implements FileApi {
 
     @Override
     public List<FileSimpVo> getFileSimpList(List<Long> fileIds) {
+        if (fileIds == null || fileIds.isEmpty()) {
+            return new ArrayList<>();
+        }
         List<FileDO> fileSimpList = fileService.getFileSimpList(fileIds);
         return fileSimpList.stream()
                 .map(fileDO ->

@@ -80,17 +80,17 @@ public interface OrderMapper extends BaseMapperX<OrderDO> {
 
     default List<OrderStatisticsRespVO> getOrderLoanStatistics(OrderPageReqVO pageReqVO){
         LambdaQueryWrapperX<OrderDO> queryWrapperX = builderQueryConditions(pageReqVO);
-        return getOrderLoanStatisticsByLoanStatus();
+        queryWrapperX.isNotNull(OrderDO::getLoanStatus);
+        return getOrderLoanStatisticsByLoanStatus(queryWrapperX);
     }
 
-    List<OrderStatisticsRespVO> getOrderLoanStatisticsByLoanStatus();
+    List<OrderStatisticsRespVO> getOrderLoanStatisticsByLoanStatus(@Param("ew") LambdaQueryWrapperX<OrderDO> queryWrapperX);
 
     default List<OrderStatisticsRespVO> getOrderPostageStatistics(OrderPageReqVO pageReqVO){
         LambdaQueryWrapperX<OrderDO> queryWrapperX = builderQueryConditions(pageReqVO);
-        return getOrderPostageStatisticsByPostageStatus();
+        queryWrapperX.isNotNull(OrderDO::getPostageStatus);
+        return getOrderPostageStatisticsByPostageStatus(queryWrapperX);
     }
 
-    List<OrderStatisticsRespVO> getOrderPostageStatisticsByPostageStatus();
-
-    ;
+    List<OrderStatisticsRespVO> getOrderPostageStatisticsByPostageStatus(@Param("ew") LambdaQueryWrapperX<OrderDO> queryWrapperX);
 }

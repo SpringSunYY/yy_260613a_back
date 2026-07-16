@@ -52,6 +52,12 @@ public class OrderProcessSortRespVO {
     private String qrCode;
 
     /**
+     * 打印图片
+     */
+    @Schema(description = "打印图片")
+    private String printImage;
+
+    /**
      * 版型
      */
     @Schema(description = "版型")

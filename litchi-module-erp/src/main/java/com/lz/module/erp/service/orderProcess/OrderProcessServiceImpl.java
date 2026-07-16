@@ -2,6 +2,7 @@ package com.lz.module.erp.service.orderProcess;
 
 import cn.hutool.core.util.ObjUtil;
 import cn.hutool.core.util.StrUtil;
+import com.anji.captcha.util.StringUtils;
 import com.baomidou.dynamic.datasource.annotation.DSTransactional;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.lz.framework.common.pojo.PageResult;
@@ -21,17 +22,18 @@ import com.lz.module.erp.enums.ErpOrderCurrentProcessEnum;
 import com.lz.module.erp.enums.PerConstants;
 import com.lz.module.erp.service.order.OrderService;
 import com.lz.module.erp.service.orderProcessHistory.OrderProcessHistoryService;
+import com.lz.module.infra.api.file.FileApi;
+import com.lz.module.infra.api.file.dto.FileSimpVo;
 import com.lz.module.system.api.user.AdminUserApi;
 import com.lz.module.system.api.user.dto.AdminUserSimpRespDTO;
 import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.lz.framework.common.exception.enums.GlobalErrorCodeConstants.FORBIDDEN;
@@ -46,6 +48,7 @@ import static com.lz.module.erp.enums.ErrorCodeConstants.ORDER_PROCESS_NOT_EXIST
  */
 @Service
 @Validated
+@Slf4j
 public class OrderProcessServiceImpl implements OrderProcessService {
 
     @Resource
@@ -63,7 +66,8 @@ public class OrderProcessServiceImpl implements OrderProcessService {
 
     @Resource
     private SecurityFrameworkService securityFrameworkService;
-
+    @Resource
+    private FileApi fileApi;
 
     @Override
     public Long createOrderProcess(OrderProcessSaveReqVO createReqVO) {
@@ -154,31 +158,82 @@ public class OrderProcessServiceImpl implements OrderProcessService {
 
     @Override
     public PageResult<OrderProcessSortRespVO> getSortProcessPage(OrderProcessPageReqVO pageReqVO) {
-        PageResult<OrderProcessDO> orderProcessDOPageResult = orderProcessMapper.selectPage(pageReqVO);
+        //指定工序状态，再根据权限排除状态
+        initSortProcessPage(pageReqVO);
+        PageResult<OrderProcessDO> orderProcessDOPageResult = orderProcessMapper.selectSortPage(pageReqVO);
         PageResult<OrderProcessSortRespVO> pageResult = new PageResult<>();
-        if (ObjUtil.isNull(orderProcessDOPageResult)||orderProcessDOPageResult.getList().isEmpty()){
+        if (ObjUtil.isNull(orderProcessDOPageResult) || orderProcessDOPageResult.getList().isEmpty()) {
             return pageResult;
         }
         List<OrderProcessDO> doPageResultList = orderProcessDOPageResult.getList();
         List<OrderProcessSortRespVO> respVOS = BeanUtils.toBean(doPageResultList, OrderProcessSortRespVO.class);
         //拿到所有的订单编号
         List<String> orderNos = respVOS.stream().map(OrderProcessSortRespVO::getOrderNo).toList();
-        List<OrderRespVO> orderRespVOS= orderService.getOrderByOrderNos(orderNos);
+        List<OrderRespVO> orderRespVOS = orderService.getOrderByOrderNos(orderNos);
         //根据orderNo转为map<orderNo,OrderRespVO>赋值给respVos
         Map<String, OrderRespVO> orderRespVOMap = new HashMap<>();
         for (OrderRespVO orderRespVO : orderRespVOS) {
-            orderRespVOMap.put(orderRespVO.getOrderNo(),orderRespVO);
+            orderRespVOMap.put(orderRespVO.getOrderNo(), orderRespVO);
+        }
+        //提取出所有的文件
+        Map<String, FileSimpVo> fileSimpMap=new HashMap<>();
+        List<String> fileIds = orderRespVOS
+                .stream().map(OrderRespVO::getPrintImage).filter(StringUtils::isNotEmpty).distinct().toList();
+        try {
+            if (pageReqVO.getQueryPrintImage()){
+                //把文件ids转为long
+                List<Long> fileIdsLong = fileIds.stream().map(Long::parseLong).toList();
+                List<FileSimpVo> fileSimpVos = fileApi.getFileSimpList(fileIdsLong);
+                //把结果转为map，key为文件id，value为文件simp，key要toString
+                fileSimpMap = fileSimpVos.stream()
+                        .collect(Collectors.toMap(k -> k.getId().toString(),
+                                v -> v));
+            }
+        } catch (Exception e) {
+            log.error("文件转换失败：{}", e.getMessage());
         }
         for (OrderProcessSortRespVO respVO : respVOS) {
             OrderRespVO orDefault = orderRespVOMap.getOrDefault(respVO.getOrderNo(), new OrderRespVO());
+            String printImage="";
+            if (StrUtil.isNotEmpty(orDefault.getPrintImage())){
+                FileSimpVo fileSimpVo = fileSimpMap.getOrDefault(orDefault.getPrintImage(), new FileSimpVo());
+                printImage=fileSimpVo.getRelativePath();
+            }
             respVO.setExceptShippingTime(orDefault.getExceptShippingTime());
             respVO.setOrderTime(orDefault.getOrderTime());
             respVO.setNumber(orDefault.getNumber());
             respVO.setOrderStatus(orDefault.getOrderStatus());
+            respVO.setPrintImage(printImage);
         }
         pageResult.setList(respVOS);
         pageResult.setTotal(orderProcessDOPageResult.getTotal());
         return pageResult;
+    }
+
+    private void initSortProcessPage(OrderProcessPageReqVO pageReqVO) {
+        // 拿到所有的状态
+        String[] arrays = ErpOrderCurrentProcessEnum.ARRAYS;
+        List<String> initCurrentProcess = new ArrayList<>(Arrays.asList(arrays));
+        // 删除不需要的工序
+        initCurrentProcess.remove(ErpOrderCurrentProcessEnum.ORDER_CURRENT_PROCESS_1.getStatus());
+        initCurrentProcess.remove(ErpOrderCurrentProcessEnum.ORDER_CURRENT_PROCESS_7.getStatus());
+        // 根据权限删除工序
+        if (!securityFrameworkService.hasPermission(PerConstants.ERP_ORDER_PROCESS_LAYOUT)) {
+            initCurrentProcess.remove(ErpOrderCurrentProcessEnum.ORDER_CURRENT_PROCESS_2.getStatus());
+        }
+        if (!securityFrameworkService.hasPermission(PerConstants.ERP_ORDER_PROCESS_PAPER)) {
+            initCurrentProcess.remove(ErpOrderCurrentProcessEnum.ORDER_CURRENT_PROCESS_3.getStatus());
+        }
+        if (!securityFrameworkService.hasPermission(PerConstants.ERP_ORDER_PROCESS_ROLLER)) {
+            initCurrentProcess.remove(ErpOrderCurrentProcessEnum.ORDER_CURRENT_PROCESS_4.getStatus());
+        }
+        if (!securityFrameworkService.hasPermission(PerConstants.ERP_ORDER_PROCESS_LASER)) {
+            initCurrentProcess.remove(ErpOrderCurrentProcessEnum.ORDER_CURRENT_PROCESS_5.getStatus());
+        }
+        if (!securityFrameworkService.hasPermission(PerConstants.ERP_ORDER_PROCESS_SHIP)){
+            initCurrentProcess.remove(ErpOrderCurrentProcessEnum.ORDER_CURRENT_PROCESS_6.getStatus());
+        }
+        pageReqVO.setInCurrentProcesses(initCurrentProcess);
     }
 
     @Override

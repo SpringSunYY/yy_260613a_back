@@ -34,6 +34,13 @@ public class OrderProcessRespVO {
     private String orderNo;
 
     /**
+     * 订单状态
+     */
+    @Schema(description = "订单状态", example = "1")
+    private String orderStatus;
+
+
+    /**
      * 排版人
      */
     @Schema(description = "排版人")

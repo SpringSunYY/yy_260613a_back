@@ -22,80 +22,99 @@ import static com.lz.framework.common.util.date.DateUtils.FORMAT_YEAR_MONTH_DAY_
 public class OrderProcessPageReqVO extends PageParam {
 
     /**
-    * 当前工序（精确匹配）
-    */
+     * 当前工序（精确匹配）
+     */
     @Schema(description = "当前工序")
     private String currentProcess;
 
     /**
-    * 当前工序排除列表（NOT IN），与 currentProcess 互斥
-    */
+     * 订单状态
+     */
+    @Schema(description = "订单状态", example = "1")
+    private String orderStatus;
+
+    /**
+     * 是否查询打印图片
+     */
+    @Schema(description = "是否查询打印图片")
+    private Boolean queryPrintImage = false;
+
+
+    /**
+     * 当前工序排除列表（NOT IN），与 currentProcess 互斥
+     */
     @Schema(description = "当前工序排除列表")
     private List<String> notInCurrentProcesses;
 
     /**
-    * 订单号
-    */
+     * 当前工序列表
+     */
+    @Schema(description = "当前工序列表")
+    private List<String> inCurrentProcesses;
+
+    /**
+     * 订单号
+     */
     @Schema(description = "订单号")
     private String orderNo;
 
     /**
-    * 排版人
-    */
+     * 排版人
+     */
     @Schema(description = "排版人")
     private String layoutPerson;
 
     /**
-    * 版型
-    */
+     * 版型
+     */
     @Schema(description = "版型")
     private String pattern;
 
     /**
-    * 布料
-    */
+     * 布料
+     */
     @Schema(description = "布料")
     private String fabric;
 
     /**
-    * 品类
-    */
+     * 品类
+     */
     @Schema(description = "品类")
     private String category;
 
     /**
-    * 规格
-    */
+     * 规格
+     */
     @Schema(description = "规格")
     private String specification;
 
     /**
-    * 开叉与否
-    */
+     * 开叉与否
+     */
     @Schema(description = "开叉与否")
     private String hasForked;
 
     /**
-    * 衫脚
-    */
+     * 衫脚
+     */
     @Schema(description = "衫脚")
     private String shirtHem;
 
     /**
-    * 口袋
-    */
+     * 口袋
+     */
     @Schema(description = "口袋")
     private String pocket;
 
     /**
-    * 领口
-    */
+     * 领口
+     */
     @Schema(description = "领口")
     private String neckline;
 
     /**
-    * 创建时间
-    */
+     * 创建时间
+     */
     @Sortable(value = "create_time")
     @I18nSize(i18nKey = "erp.orderProcess.back.createTime.size", min = 0, max = 2, message = "创建时间长度不能超过2")
     @Schema(description = "创建时间")

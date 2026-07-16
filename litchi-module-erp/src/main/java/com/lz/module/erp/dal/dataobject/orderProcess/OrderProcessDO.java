@@ -38,6 +38,12 @@ public class OrderProcessDO extends BaseDO {
      */
     private String orderNo;
     /**
+     * 订单状态
+     *
+     * 枚举 {@link TODO erp_order_status 对应的类}
+     */
+    private String orderStatus;
+    /**
      * 排版人
      */
     private String layoutPerson;

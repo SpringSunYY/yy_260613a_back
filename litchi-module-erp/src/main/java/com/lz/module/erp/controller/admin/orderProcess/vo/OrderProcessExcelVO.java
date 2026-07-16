@@ -44,6 +44,15 @@ public class OrderProcessExcelVO {
     private String orderNo;
 
     /**
+     * 订单状态
+     */
+    @ExcelProperty(value = "订单状态", converter = DictConvert.class)
+    @ExcelColumnSelect(dictType = "erp_order_status", i18n = true)
+    @ExcelI18n(i18nKey = "erp.orderProcess.field.orderStatus")
+    private String orderStatus;
+
+
+    /**
     * 排版人
     */
     @ExcelProperty("排版人")

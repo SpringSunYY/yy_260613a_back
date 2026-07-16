@@ -123,6 +123,7 @@ public class OrderServiceImpl implements OrderService {
         order.setFabric(orderProcess.getFabric());
         order.setSpecification(orderProcess.getSpecification());
 
+        orderProcess.setOrderStatus(orderProcess.getOrderStatus());
         orderProcess.setOrderNo(order.getOrderNo());
     }
 
@@ -432,7 +433,10 @@ public class OrderServiceImpl implements OrderService {
         //计算总数
         int total = 0;
         for (List<OrderDetailDO> orderDetailDOS : diffList) {
-            total += orderDetailDOS.stream().mapToInt(OrderDetailDO::getSetQuantity).sum();
+            total += orderDetailDOS.stream()
+                    .filter(d -> d.getSetQuantity() != null)
+                    .mapToInt(OrderDetailDO::getSetQuantity)
+                    .sum();
         }
         return total;
     }
