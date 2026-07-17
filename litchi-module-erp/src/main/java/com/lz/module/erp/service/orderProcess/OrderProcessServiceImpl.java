@@ -13,6 +13,7 @@ import com.lz.module.erp.controller.admin.order.vo.OrderRespVO;
 import com.lz.module.erp.controller.admin.orderProcess.vo.OrderProcessPageReqVO;
 import com.lz.module.erp.controller.admin.orderProcess.vo.OrderProcessSaveReqVO;
 import com.lz.module.erp.controller.admin.orderProcess.vo.OrderProcessSortRespVO;
+import com.lz.module.erp.controller.admin.orderProcess.vo.OrderProcessSortUpdateReqVO;
 import com.lz.module.erp.controller.admin.orderProcessHistory.vo.OrderProcessHistorySaveReqVO;
 import com.lz.module.erp.dal.dataobject.order.OrderDO;
 import com.lz.module.erp.dal.dataobject.orderProcess.OrderProcessDO;
@@ -27,9 +28,12 @@ import com.lz.module.infra.api.file.dto.FileSimpVo;
 import com.lz.module.system.api.user.AdminUserApi;
 import com.lz.module.system.api.user.dto.AdminUserSimpRespDTO;
 import jakarta.annotation.Resource;
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
+import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.validation.annotation.Validated;
 
 import java.time.LocalDateTime;
@@ -68,6 +72,8 @@ public class OrderProcessServiceImpl implements OrderProcessService {
     private SecurityFrameworkService securityFrameworkService;
     @Resource
     private FileApi fileApi;
+    @Resource
+    private TransactionTemplate transactionTemplate;
 
     @Override
     public Long createOrderProcess(OrderProcessSaveReqVO createReqVO) {
@@ -82,7 +88,7 @@ public class OrderProcessServiceImpl implements OrderProcessService {
     @Override
     @DSTransactional
     public void updateOrderProcess(OrderProcessSaveReqVO reqVO) {
-        //必须要有图片
+        // 必须要有图片
         // 校验存在
         OrderProcessDO processDO = validateOrderProcessExists(reqVO.getId());
         //校验订单是否存在
@@ -93,7 +99,7 @@ public class OrderProcessServiceImpl implements OrderProcessService {
         }
         //判断冗余数据是否一致，如果不一致要更新订单的数据
         if (isRedundantDataChanged(processDO, orderDO, reqVO)) {
-            orderService.initOrderByProcess(orderDO, BeanUtils.toBean(processDO, OrderProcessSaveReqVO.class));
+            orderService.initOrderByProcess(orderDO, reqVO);
             orderService.updateOrder(orderDO);
         }
         //判断工序是否一致
@@ -176,11 +182,11 @@ public class OrderProcessServiceImpl implements OrderProcessService {
             orderRespVOMap.put(orderRespVO.getOrderNo(), orderRespVO);
         }
         //提取出所有的文件
-        Map<String, FileSimpVo> fileSimpMap=new HashMap<>();
+        Map<String, FileSimpVo> fileSimpMap = new HashMap<>();
         List<String> fileIds = orderRespVOS
                 .stream().map(OrderRespVO::getPrintImage).filter(StringUtils::isNotEmpty).distinct().toList();
         try {
-            if (pageReqVO.getQueryPrintImage()){
+            if (pageReqVO.getQueryPrintImage()) {
                 //把文件ids转为long
                 List<Long> fileIdsLong = fileIds.stream().map(Long::parseLong).toList();
                 List<FileSimpVo> fileSimpVos = fileApi.getFileSimpList(fileIdsLong);
@@ -194,10 +200,10 @@ public class OrderProcessServiceImpl implements OrderProcessService {
         }
         for (OrderProcessSortRespVO respVO : respVOS) {
             OrderRespVO orDefault = orderRespVOMap.getOrDefault(respVO.getOrderNo(), new OrderRespVO());
-            String printImage="";
-            if (StrUtil.isNotEmpty(orDefault.getPrintImage())){
+            String printImage = "";
+            if (StrUtil.isNotEmpty(orDefault.getPrintImage())) {
                 FileSimpVo fileSimpVo = fileSimpMap.getOrDefault(orDefault.getPrintImage(), new FileSimpVo());
-                printImage=fileSimpVo.getRelativePath();
+                printImage = fileSimpVo.getRelativePath();
             }
             respVO.setExceptShippingTime(orDefault.getExceptShippingTime());
             respVO.setOrderTime(orDefault.getOrderTime());
@@ -218,22 +224,31 @@ public class OrderProcessServiceImpl implements OrderProcessService {
         initCurrentProcess.remove(ErpOrderCurrentProcessEnum.ORDER_CURRENT_PROCESS_1.getStatus());
         initCurrentProcess.remove(ErpOrderCurrentProcessEnum.ORDER_CURRENT_PROCESS_7.getStatus());
         // 根据权限删除工序
-        if (!securityFrameworkService.hasPermission(PerConstants.ERP_ORDER_PROCESS_LAYOUT)) {
+        if (!securityFrameworkService.hasPermission(PerConstants.ERP_ORDER_PROCESS_LAYOUT)
+                && !securityFrameworkService.hasPermission(PerConstants.ERP_ORDER_PROCESS_COMPLETE)) {
             initCurrentProcess.remove(ErpOrderCurrentProcessEnum.ORDER_CURRENT_PROCESS_2.getStatus());
         }
-        if (!securityFrameworkService.hasPermission(PerConstants.ERP_ORDER_PROCESS_PAPER)) {
+        if (!securityFrameworkService.hasPermission(PerConstants.ERP_ORDER_PROCESS_PAPER)
+                && !securityFrameworkService.hasPermission(PerConstants.ERP_ORDER_PROCESS_COMPLETE)) {
             initCurrentProcess.remove(ErpOrderCurrentProcessEnum.ORDER_CURRENT_PROCESS_3.getStatus());
         }
-        if (!securityFrameworkService.hasPermission(PerConstants.ERP_ORDER_PROCESS_ROLLER)) {
+        if (!securityFrameworkService.hasPermission(PerConstants.ERP_ORDER_PROCESS_ROLLER)
+                && !securityFrameworkService.hasPermission(PerConstants.ERP_ORDER_PROCESS_COMPLETE)) {
             initCurrentProcess.remove(ErpOrderCurrentProcessEnum.ORDER_CURRENT_PROCESS_4.getStatus());
         }
-        if (!securityFrameworkService.hasPermission(PerConstants.ERP_ORDER_PROCESS_LASER)) {
+        if (!securityFrameworkService.hasPermission(PerConstants.ERP_ORDER_PROCESS_LASER)
+                && !securityFrameworkService.hasPermission(PerConstants.ERP_ORDER_PROCESS_COMPLETE)) {
             initCurrentProcess.remove(ErpOrderCurrentProcessEnum.ORDER_CURRENT_PROCESS_5.getStatus());
         }
-        if (!securityFrameworkService.hasPermission(PerConstants.ERP_ORDER_PROCESS_SHIP)){
+        if (!securityFrameworkService.hasPermission(PerConstants.ERP_ORDER_PROCESS_SHIP)
+                && !securityFrameworkService.hasPermission(PerConstants.ERP_ORDER_PROCESS_COMPLETE)) {
             initCurrentProcess.remove(ErpOrderCurrentProcessEnum.ORDER_CURRENT_PROCESS_6.getStatus());
         }
         pageReqVO.setInCurrentProcesses(initCurrentProcess);
+        //如果没有可以查看的了直接反转notIn，让他什么都不可以看
+        if (initCurrentProcess.isEmpty()) {
+            pageReqVO.setNotInCurrentProcesses(new ArrayList<>(Arrays.asList(arrays)));
+        }
     }
 
     @Override
@@ -257,7 +272,7 @@ public class OrderProcessServiceImpl implements OrderProcessService {
     }
 
     @Override
-    public void updateProcessToTargetProcess(OrderProcessSaveReqVO reqVO) {
+    public void updateProcessToTargetProcess(@Valid @MonotonicNonNull OrderProcessSortUpdateReqVO reqVO) {
         boolean hasPermission = false;
         //根据不同状态判断权限
         if (ErpOrderCurrentProcessEnum.ORDER_CURRENT_PROCESS_3.getStatus().equals(reqVO.getCurrentProcess())) {
@@ -283,7 +298,29 @@ public class OrderProcessServiceImpl implements OrderProcessService {
         if (!hasPermission) {
             throw exception(FORBIDDEN);
         }
-        this.updateOrderProcess(reqVO);
+        this.updateOrderProcessBySort(reqVO);
+    }
+
+    @Override
+    public void updateOrderProcessBySort(OrderProcessSortUpdateReqVO reqVO) {
+        // 校验存在
+        OrderProcessDO processDO = validateOrderProcessExists(reqVO.getId());
+        //校验订单是否存在
+        OrderDO orderDO = orderService.validateOrderExistsByNo(processDO.getOrderNo());
+        // 如果订单还没有审核通过
+        if (!orderDO.getAuditStatus().equals(ErpOrderAuditStatusEnum.ORDER_AUDIT_STATUS_3.getStatus())) {
+            throw exception(ORDER_AUDIT_STATUS_NO_APPROVE);
+        }
+        OrderProcessSaveReqVO saveReqVO = BeanUtils.toBean(reqVO, OrderProcessSaveReqVO.class);
+        //直接如果不一致要更新订单的数据
+        orderService.initOrderByProcess(orderDO, saveReqVO);
+        transactionTemplate.executeWithoutResult(result -> {
+            //更新明细
+            int totalNum = orderService.updateOrderDetailList(orderDO.getOrderNo(), reqVO.getOrderDetails());
+            orderDO.setNumber(totalNum);
+            orderService.updateOrder(orderDO);
+            orderProcessMapper.updateById(BeanUtils.toBean(saveReqVO, OrderProcessDO.class));
+        });
     }
 
     /**

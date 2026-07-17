@@ -153,6 +153,9 @@ public interface OrderService {
     List<OrderDetailDO> getOrderDetailListByOrderNo(String orderNo);
 
     // ===================== 统计 =====================
+
+    int updateOrderDetailList(String orderNo, List<OrderDetailSaveReqVO> list);
+
     /**
      * 订单统计
      * @param pageReqVO 查询

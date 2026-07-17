@@ -100,6 +100,7 @@ public class OrderServiceImpl implements OrderService {
         order.setPrintStatus(ErpOrderPrintStatusEnum.ORDER_PRINT_STATUS_0.getStatus());
         OrderProcessSaveReqVO orderProcess = createReqVO.getOrderProcess();
         orderProcess.setCurrentProcess(ErpOrderCurrentProcessEnum.ORDER_CURRENT_PROCESS_1.getStatus());
+        orderProcess.setId(null);
         // 插入子表
         int total = createOrderDetailList(order.getOrderNo(), createReqVO.getOrderDetails());
         //根据工序
@@ -123,7 +124,7 @@ public class OrderServiceImpl implements OrderService {
         order.setFabric(orderProcess.getFabric());
         order.setSpecification(orderProcess.getSpecification());
 
-        orderProcess.setOrderStatus(orderProcess.getOrderStatus());
+        orderProcess.setOrderStatus(order.getOrderStatus());
         orderProcess.setOrderNo(order.getOrderNo());
     }
 
@@ -401,13 +402,17 @@ public class OrderServiceImpl implements OrderService {
     }
 
     private int createOrderDetailList(String orderNo, List<OrderDetailSaveReqVO> list) {
-        list.forEach(o -> o.setOrderNo(orderNo));
+        list.forEach(o -> {
+            o.setOrderNo(orderNo);
+            o.setId(null);
+        });
         List<OrderDetailDO> orderDetailDOS = BeanUtils.toBean(list, OrderDetailDO.class);
         orderDetailMapper.insertBatch(orderDetailDOS);
         return orderDetailDOS.stream().mapToInt(OrderDetailDO::getSetQuantity).sum();
     }
 
-    private int updateOrderDetailList(String orderNo, List<OrderDetailSaveReqVO> list) {
+    @Override
+    public int updateOrderDetailList(String orderNo, List<OrderDetailSaveReqVO> list) {
         list.forEach(o -> o.setOrderNo(orderNo));
         //使用老的订单号查询
         List<OrderDetailDO> oldList = orderDetailMapper.selectListByOrderNo(orderNo);

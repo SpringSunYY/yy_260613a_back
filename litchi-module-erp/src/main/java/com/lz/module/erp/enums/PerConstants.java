@@ -33,4 +33,9 @@ public class PerConstants {
      * 完成裁缝发货
      */
     public static final String ERP_ORDER_PROCESS_SHIP = "erp:order-process:ship";
+
+    /**
+     * 完成
+     */
+    public static final String ERP_ORDER_PROCESS_COMPLETE = "erp:order-process:complete";
 }

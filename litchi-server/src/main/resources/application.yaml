@@ -313,7 +313,7 @@ litchi:
     is-import: "0" # 是否导入（1-否，0-是）
     popup-type: drawer # 弹窗类型（drawer/modal）
   tenant: # 多租户相关配置项
-    enable: true
+    enable: false
     system-tenant-id: 1
     enable-user: false
     user-prefix: /app-api
@@ -350,7 +350,7 @@ debug: false
 --- #################### 向量相关配置 ####################
 litchi:
   vector:
-    enable: false # 是否启用向量，默认关闭，避免不使用向量也创建bean
+    enable: true # 是否启用向量，默认关闭，避免不使用向量也创建bean
     milvus:
       # ==============================================================
       # Milvus 连接配置

@@ -63,8 +63,16 @@ public class OrderProcessController {
     @PutMapping("/update/process")
     @Operation(summary = "更新订单工序")
     @PreAuthorize("@ss.hasPermission('erp:order-process:update')")
-    public CommonResult<Boolean> updateProcessToTargetProcessByNo(@Valid @RequestBody OrderProcessSaveReqVO reqVO) {
+    public CommonResult<Boolean> updateProcessToTargetProcessByNo(@Valid @RequestBody OrderProcessSortUpdateReqVO reqVO) {
         orderProcessService.updateProcessToTargetProcess(reqVO);
+        return success(true);
+    }
+
+    @PutMapping("/update/sort")
+    @Operation(summary = "更新订单工序")
+    @PreAuthorize("@ss.hasPermission('erp:order-process:update')")
+    public CommonResult<Boolean> updateOrderProcessBySort(@Valid @RequestBody OrderProcessSortUpdateReqVO reqVO) {
+        orderProcessService.updateOrderProcessBySort(reqVO);
         return success(true);
     }
 

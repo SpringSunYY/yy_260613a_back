@@ -99,7 +99,7 @@ public class MenuServiceImpl implements MenuService {
         if (!isDeleteChildren && menuMapper.selectCountByParentId(id) > 0) {
             throw exception(MENU_EXISTS_CHILDREN);
         }
-        if (isDeleteChildren&&menuMapper.selectCountByParentId(id) > 0) {
+        if (isDeleteChildren && menuMapper.selectCountByParentId(id) > 0) {
             List<MenuDO> menuList = new ArrayList<>();
             selectMenuChildren(id, menuList);
             menuList.forEach(menuDO -> {
@@ -195,7 +195,8 @@ public class MenuServiceImpl implements MenuService {
 
         // 3. 继续遍历 parent 节点
         MenuDO parent = menuMap.get(parentId);
-        if (parent == null || isMenuDisabled(parent, menuMap, disabledMenuCache)) {
+        //防止因为父节点不存在，但是他有某个按钮的权限，所以这里要判断
+        if (parent != null && isMenuDisabled(parent, menuMap, disabledMenuCache)) {
             disabledMenuCache.add(node.getId());
             return true;
         }
