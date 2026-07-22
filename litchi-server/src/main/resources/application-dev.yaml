@@ -44,9 +44,9 @@ spring:
       primary: master
       datasource:
         master:
-          url: jdbc:mysql://localhost:3306/litchi?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&nullCatalogMeansCurrent=true&rewriteBatchedStatements=true # MySQL Connector/J 8.X 连接的示例
-          username: litchi
-          password: litchi
+          url: jdbc:mysql://localhost:3306/erp_order?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&nullCatalogMeansCurrent=true&rewriteBatchedStatements=true # MySQL Connector/J 8.X 连接的示例
+          username: erp_order
+          password: erp_order
         slave: # 模拟从库，可根据自己需要修改 # 模拟从库，可根据自己需要修改
           lazy: true # 开启懒加载，保证启动速度
           url: jdbc:mysql://127.0.0.1:3306/litchi?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&nullCatalogMeansCurrent=true&rewriteBatchedStatements=true # MySQL Connector/J 8.X 连接的示例
@@ -156,7 +156,7 @@ litchi:
     refund-notify-url: http://yunai.natapp1.cc/admin-api/pay/notify/refund # 支付渠道的【退款】回调地址
     transfer-notify-url: https://yunai.natapp1.cc/admin-api/pay/notify/transfer # 支付渠道的【转账】回调地址
   demo:
-    enabled: true # 是否开启防傻逼演示模式，开启后默认禁止写操作，可通过 @DemoMode 注解细粒度放行
+    enabled: false # 是否开启防傻逼演示模式，开启后默认禁止写操作，可通过 @DemoMode 注解细粒度放行
   tencent-lbs-key: TVDBZ-TDILD-4ON4B-PFDZA-RNLKH-VVF6E # QQ 地图的密钥 https://lbs.qq.com/service/staticV2/staticGuide/staticDoc
 
 justauth:
@@ -205,10 +205,11 @@ wx: # 参见 https://github.com/Wechat-Group/WxJava/blob/develop/spring-boot-sta
       key-prefix: wa # Redis Key 的前缀
       http-client-type: HttpClient # 采用 HttpClient 请求微信公众号平台
 
+
 --- #################### 向量相关配置 ####################
 litchi:
   vector:
-    enable: false # 是否启用向量，默认关闭，避免不使用向量也创建bean
+    enable: true # 是否启用向量，默认关闭，避免不使用向量也创建bean
     milvus:
       # ==============================================================
       # Milvus 连接配置
@@ -217,10 +218,10 @@ litchi:
       host: 127.0.0.1
       port: 19530
       username: root
-      password: mlivusRoot
+      password: milvusRoot
       # Milvus 数据库名
       # dynamic-database=true 时自动拼接为 ${database}_${embedding.model}（如 vector_image_search_dino）
-      database: vector_image_search
+      database: vector_order_image_search
       # 是否开启动态数据库名：true = database 自动拼接当前激活的模型名（默认开启）
       # 开启后切换模型时 database 会自动切换，数据天然隔离，无需手动清库
       dynamic-database: true
@@ -325,7 +326,7 @@ litchi:
       # ==============================================================
       dino:
         # ONNX 模型路径
-        vision-model-path: E:\Java\Code\MyStudy\Milvus\Models\dino\model.onnx
+        vision-model-path: /www/wwwroot/vector/dino/model.onnx
         # 视觉塔 OrtSession 池大小
         # 关键：pool × intraOp 不能超过 CPU 物理核数。
         # pool 太大 + intraOp 太大会导致线程切换风暴，反而比少量 session 多线程慢。

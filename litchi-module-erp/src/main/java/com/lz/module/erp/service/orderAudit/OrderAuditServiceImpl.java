@@ -62,8 +62,8 @@ public class OrderAuditServiceImpl implements OrderAuditService {
         }
         //查询订单并判断是否已同意，已同意不可以再次提交审核
         OrderDO orderByOrderNo = orderService.validateOrderExistsByNo(createReqVO.getOrderNo());
-        if (StrUtil.isNotEmpty(orderByOrderNo.getOrderStatus()) &&
-                orderByOrderNo.getOrderStatus().equals(ErpOrderAuditStatusEnum.ORDER_AUDIT_STATUS_3.getStatus())) {
+        if (StrUtil.isNotEmpty(orderByOrderNo.getAuditStatus()) &&
+                orderByOrderNo.getAuditStatus().equals(ErpOrderAuditStatusEnum.ORDER_AUDIT_STATUS_3.getStatus())) {
             throw exception(ORDER_AUDIT_STATUE_APPROVE);
         }
         // 插入

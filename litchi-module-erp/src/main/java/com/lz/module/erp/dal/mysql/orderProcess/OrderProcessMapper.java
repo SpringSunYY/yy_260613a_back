@@ -43,7 +43,7 @@ public interface OrderProcessMapper extends BaseMapperX<OrderProcessDO> {
     default PageResult<OrderProcessDO> selectSortPage(OrderProcessPageReqVO pageReqVO) {
         LambdaQueryWrapperX<OrderProcessDO> orderProcessDOLambdaQueryWrapperX = builderQueryWrapper(pageReqVO);
         orderProcessDOLambdaQueryWrapperX.orderByAsc(OrderProcessDO::getOrderStatus);
-        orderProcessDOLambdaQueryWrapperX.orderByDesc(OrderProcessDO::getCreateTime);
+        orderProcessDOLambdaQueryWrapperX.orderByDesc(OrderProcessDO::getUpdateTime);
         return selectPage(pageReqVO, orderProcessDOLambdaQueryWrapperX);
     }
 }
