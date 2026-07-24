@@ -10,10 +10,7 @@ import com.lz.framework.common.util.object.BeanUtils;
 import com.lz.framework.security.core.service.SecurityFrameworkService;
 import com.lz.framework.security.core.util.SecurityFrameworkUtils;
 import com.lz.module.erp.controller.admin.order.vo.OrderRespVO;
-import com.lz.module.erp.controller.admin.orderProcess.vo.OrderProcessPageReqVO;
-import com.lz.module.erp.controller.admin.orderProcess.vo.OrderProcessSaveReqVO;
-import com.lz.module.erp.controller.admin.orderProcess.vo.OrderProcessSortRespVO;
-import com.lz.module.erp.controller.admin.orderProcess.vo.OrderProcessSortUpdateReqVO;
+import com.lz.module.erp.controller.admin.orderProcess.vo.*;
 import com.lz.module.erp.controller.admin.orderProcessHistory.vo.OrderProcessHistorySaveReqVO;
 import com.lz.module.erp.dal.dataobject.order.OrderDO;
 import com.lz.module.erp.dal.dataobject.orderProcess.OrderProcessDO;
@@ -146,7 +143,7 @@ public class OrderProcessServiceImpl implements OrderProcessService {
     }
 
     @Override
-    public PageResult<OrderProcessDO> getOrderProcessPage(OrderProcessPageReqVO pageReqVO) {
+    public PageResult<OrderProcessDO> getOrderProcessList(OrderProcessPageReqVO pageReqVO) {
         PageResult<OrderProcessDO> orderProcessDOPageResult = orderProcessMapper.selectPage(pageReqVO);
         //构建创建人
         //提取所有的创建人
@@ -160,6 +157,60 @@ public class OrderProcessServiceImpl implements OrderProcessService {
             orderDO.setCreator(userSimpMap.getOrDefault(orderDO.getCreator(), new AdminUserSimpRespDTO()).getNickname());
         });
         return orderProcessDOPageResult;
+    }
+
+    @Override
+    public PageResult<OrderProcessPageRespVO> getOrderProcessPage(OrderProcessPageReqVO pageReqVO) {
+        //指定工序状态，再根据权限排除状态
+        initSortProcessPage(pageReqVO);
+        PageResult<OrderProcessDO> orderProcessDOPageResult = orderProcessMapper.selectSortPage(pageReqVO);
+        PageResult<OrderProcessPageRespVO> pageResult = new PageResult<>();
+        if (ObjUtil.isNull(orderProcessDOPageResult) || orderProcessDOPageResult.getList().isEmpty()) {
+            return pageResult;
+        }
+        List<OrderProcessDO> doPageResultList = orderProcessDOPageResult.getList();
+        List<OrderProcessPageRespVO> respVOS = BeanUtils.toBean(doPageResultList, OrderProcessPageRespVO.class);
+        //拿到所有的订单编号
+        List<String> orderNos = respVOS.stream().map(OrderProcessPageRespVO::getOrderNo).toList();
+        List<OrderRespVO> orderRespVOS = orderService.getOrderByOrderNos(orderNos);
+        //根据orderNo转为map<orderNo,OrderRespVO>赋值给respVos
+        Map<String, OrderRespVO> orderRespVOMap = new HashMap<>();
+        for (OrderRespVO orderRespVO : orderRespVOS) {
+            orderRespVOMap.put(orderRespVO.getOrderNo(), orderRespVO);
+        }
+        //提取出所有的文件
+        Map<String, FileSimpVo> fileSimpMap = new HashMap<>();
+        List<String> fileIds = orderRespVOS
+                .stream().map(OrderRespVO::getPrintImage).filter(StringUtils::isNotEmpty).distinct().toList();
+        try {
+            //把文件ids转为long
+            List<Long> fileIdsLong = fileIds.stream().map(Long::parseLong).toList();
+            List<FileSimpVo> fileSimpVos = fileApi.getFileSimpList(fileIdsLong);
+            //把结果转为map，key为文件id，value为文件simp，key要toString
+            fileSimpMap = fileSimpVos.stream()
+                    .collect(Collectors.toMap(k -> k.getId().toString(),
+                            v -> v));
+        } catch (Exception e) {
+            log.error("文件转换失败：{}", e.getMessage());
+        }
+        for (OrderProcessPageRespVO respVO : respVOS) {
+            OrderRespVO orDefault = orderRespVOMap.getOrDefault(respVO.getOrderNo(), new OrderRespVO());
+            String printImage = "";
+            if (StrUtil.isNotEmpty(orDefault.getPrintImage())) {
+                FileSimpVo fileSimpVo = fileSimpMap.getOrDefault(orDefault.getPrintImage(), new FileSimpVo());
+                printImage = fileSimpVo.getRelativePath();
+            }
+            respVO.setExceptShippingTime(orDefault.getExceptShippingTime());
+            respVO.setNumber(orDefault.getNumber());
+            respVO.setOrderStatus(orDefault.getOrderStatus());
+            respVO.setPrintImage(printImage);
+            respVO.setShippingAddress(orDefault.getShippingAddress());
+            respVO.setPickupMethod(orDefault.getPickupMethod());
+            respVO.setCustomer(orDefault.getCustomer());
+        }
+        pageResult.setList(respVOS);
+        pageResult.setTotal(orderProcessDOPageResult.getTotal());
+        return pageResult;
     }
 
     @Override

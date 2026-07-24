@@ -61,12 +61,20 @@ public interface OrderProcessService {
     OrderProcessDO getOrderProcessByOrderNo(String orderNo);
 
     /**
+     * 获得订单工序列表
+     *
+     * @param pageReqVO 分页查询
+     * @return 订单工序分页
+     */
+    PageResult<OrderProcessDO> getOrderProcessList(OrderProcessPageReqVO pageReqVO);
+
+    /**
      * 获得订单工序分页
      *
      * @param pageReqVO 分页查询
      * @return 订单工序分页
      */
-    PageResult<OrderProcessDO> getOrderProcessPage(OrderProcessPageReqVO pageReqVO);
+    PageResult<OrderProcessPageRespVO> getOrderProcessPage( OrderProcessPageReqVO pageReqVO);
 
     /**
      * 获得订单工序排序分页
@@ -94,4 +102,5 @@ public interface OrderProcessService {
     void updateProcessToTargetProcess(@Valid OrderProcessSortUpdateReqVO reqVO);
 
     void updateOrderProcessBySort(@Valid OrderProcessSortUpdateReqVO reqVO);
+
 }

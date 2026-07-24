@@ -130,9 +130,8 @@ public class OrderProcessController {
     @GetMapping("/page")
     @Operation(summary = "获得订单工序分页")
     @PreAuthorize("@ss.hasPermission('erp:order-process:query')")
-    public CommonResult<PageResult<OrderProcessRespVO>> getOrderProcessPage(@Valid OrderProcessPageReqVO pageReqVO) {
-        PageResult<OrderProcessDO> pageResult = orderProcessService.getOrderProcessPage(pageReqVO);
-        return success(BeanUtils.toBean(pageResult, OrderProcessRespVO.class));
+    public CommonResult<PageResult<OrderProcessPageRespVO>> getOrderProcessPage(@Valid OrderProcessPageReqVO pageReqVO) {
+        return success(orderProcessService.getOrderProcessPage(pageReqVO));
     }
 
     /**
@@ -156,7 +155,7 @@ public class OrderProcessController {
     public void exportOrderProcessExcel(@Valid OrderProcessPageReqVO pageReqVO,
               HttpServletResponse response) throws IOException {
         pageReqVO.setPageSize(PageParam.PAGE_SIZE_NONE);
-        List<OrderProcessDO> list = orderProcessService.getOrderProcessPage(pageReqVO).getList();
+        List<OrderProcessDO> list = orderProcessService.getOrderProcessList(pageReqVO).getList();
         // 导出 Excel
         ExcelUtils.write(response, "订单工序.xls", "数据", OrderProcessExcelVO.class,
                         BeanUtils.toBean(list, OrderProcessExcelVO.class));
