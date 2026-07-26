@@ -97,10 +97,16 @@ public interface OrderProcessService {
     /**
      * 更新订单工序状态
      *
-     * @param reqVO 工单状态
      */
-    void updateProcessToTargetProcess(@Valid OrderProcessSortUpdateReqVO reqVO);
+    void updateProcessToTargetProcess(@Valid OrderProcessToTargetProcessReqVO reqVO);
 
     void updateOrderProcessBySort(@Valid OrderProcessSortUpdateReqVO reqVO);
 
+    /**
+     * 校验订单工序是否存在
+     *
+     * @param id 编号
+     * @return 订单工序
+     */
+    OrderProcessDO validateOrderProcessExists(Long id);
 }

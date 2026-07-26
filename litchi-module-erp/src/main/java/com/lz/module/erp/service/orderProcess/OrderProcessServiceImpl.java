@@ -124,7 +124,8 @@ public class OrderProcessServiceImpl implements OrderProcessService {
     }
 
 
-    private OrderProcessDO validateOrderProcessExists(Long id) {
+    @Override
+    public OrderProcessDO validateOrderProcessExists(Long id) {
         OrderProcessDO orderProcessDO = orderProcessMapper.selectById(id);
         if (orderProcessDO == null) {
             throw exception(ORDER_PROCESS_NOT_EXISTS);
@@ -323,7 +324,7 @@ public class OrderProcessServiceImpl implements OrderProcessService {
     }
 
     @Override
-    public void updateProcessToTargetProcess(@Valid @MonotonicNonNull OrderProcessSortUpdateReqVO reqVO) {
+    public void updateProcessToTargetProcess(@Valid OrderProcessToTargetProcessReqVO reqVO) {
         boolean hasPermission = false;
         //根据不同状态判断权限
         if (ErpOrderCurrentProcessEnum.ORDER_CURRENT_PROCESS_3.getStatus().equals(reqVO.getCurrentProcess())) {
@@ -349,7 +350,20 @@ public class OrderProcessServiceImpl implements OrderProcessService {
         if (!hasPermission) {
             throw exception(FORBIDDEN);
         }
-        this.updateOrderProcessBySort(reqVO);
+        // 校验存在
+        OrderProcessDO processDO = validateOrderProcessExists(reqVO.getId());
+        //校验订单是否存在
+        OrderDO orderDO = orderService.validateOrderExistsByNo(processDO.getOrderNo());
+        // 如果订单还没有审核通过
+        if (!orderDO.getAuditStatus().equals(ErpOrderAuditStatusEnum.ORDER_AUDIT_STATUS_3.getStatus())) {
+            throw exception(ORDER_AUDIT_STATUS_NO_APPROVE);
+        }
+        orderDO.setCurrentProcess(reqVO.getCurrentProcess());
+        transactionTemplate.executeWithoutResult(result -> {
+            //更新明细
+            orderService.updateOrder(orderDO);
+            orderProcessMapper.updateById(BeanUtils.toBean(reqVO, OrderProcessDO.class));
+        });
     }
 
     @Override

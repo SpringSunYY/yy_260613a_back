@@ -60,10 +60,12 @@ public class OrderProcessController {
         return success(true);
     }
 
+    /**
+     * 这里不需要判断权限，由业务判断
+     */
     @PutMapping("/update/process")
     @Operation(summary = "更新订单工序")
-    @PreAuthorize("@ss.hasPermission('erp:order-process:update')")
-    public CommonResult<Boolean> updateProcessToTargetProcessByNo(@Valid @RequestBody OrderProcessSortUpdateReqVO reqVO) {
+    public CommonResult<Boolean> updateProcessToTargetProcessByNo(@Valid @RequestBody OrderProcessToTargetProcessReqVO reqVO) {
         orderProcessService.updateProcessToTargetProcess(reqVO);
         return success(true);
     }

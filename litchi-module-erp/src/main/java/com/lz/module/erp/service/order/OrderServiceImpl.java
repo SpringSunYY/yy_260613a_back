@@ -486,13 +486,18 @@ public class OrderServiceImpl implements OrderService {
         if (ObjUtil.isNull(orderDO.getShippingTime())) {
             throw exception(ORDER_NOT_SHIPPED);
         }
+        //拿到订单
+        OrderProcessDO processDO = orderProcessService.getOrderProcessByOrderNo(reqVO.getOrderNo());
+        if (ObjUtil.isNull(processDO)) {
+            throw exception(ORDER_PROCESS_NOT_EXISTS);
+        }
         //判断是否有图片
-        if (StrUtil.isEmpty(reqVO.getOrderImage())) {
+        if (StrUtil.isEmpty(processDO.getOrderImage())) {
             throw exception(ORDER_NOT_ORDER_IMAGE);
         }
         //异步去构建向量
         executor.execute(() -> {
-            orderVectorService.indexOrderVector(reqVO.getOrderNo(), reqVO.getOrderImage());
+            orderVectorService.indexOrderVector(processDO.getOrderNo(), processDO.getOrderImage());
         });
     }
 }
