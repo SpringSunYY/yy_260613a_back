@@ -18,9 +18,11 @@ import com.lz.module.erp.controller.admin.orderProcess.vo.OrderProcessSaveReqVO;
 import com.lz.module.erp.dal.dataobject.order.OrderDO;
 import com.lz.module.erp.dal.dataobject.order.OrderDetailDO;
 import com.lz.module.erp.dal.dataobject.orderProcess.OrderProcessDO;
+import com.lz.module.erp.dal.dataobject.orderProcessHistory.OrderProcessHistoryDO;
 import com.lz.module.erp.dal.mysql.order.OrderDetailMapper;
 import com.lz.module.erp.dal.mysql.order.OrderMapper;
 import com.lz.module.erp.dal.mysql.orderProcess.OrderProcessMapper;
+import com.lz.module.erp.dal.mysql.orderProcessHistory.OrderProcessHistoryMapper;
 import com.lz.module.erp.enums.ErpDictTypeConstants;
 import com.lz.module.erp.enums.ErpOrderAuditStatusEnum;
 import com.lz.module.erp.enums.ErpOrderCurrentProcessEnum;
@@ -41,9 +43,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.validation.annotation.Validated;
 
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.lz.framework.common.exception.util.ServiceExceptionUtil.exception;
@@ -83,6 +83,9 @@ public class OrderServiceImpl implements OrderService {
 
     @Resource
     private FileApi fileApi;
+
+    @Resource
+    private OrderProcessHistoryMapper orderProcessHistoryMapper;
 
     @Resource
     private TransactionTemplate transactionTemplate;
@@ -333,6 +336,50 @@ public class OrderServiceImpl implements OrderService {
     public PageResult<OrderDO> getOrderPage(OrderPageReqVO pageReqVO) {
         PageResult<OrderDO> orderDOPageResult = orderMapper.selectPage(pageReqVO);
         return buildPageResult(orderDOPageResult);
+    }
+
+    @Override
+    public PageResult<OrderRespVO> getOrderPageList(OrderPageReqVO pageReqVO) {
+        PageResult<OrderDO> orderPage = this.getOrderPage(pageReqVO);
+        if (ObjUtil.isNull(orderPage) || orderPage.getList().isEmpty()) {
+            return new PageResult<>();
+        }
+        List<OrderRespVO> orderRespVOS = BeanUtils.toBean(orderPage.getList(), OrderRespVO.class);
+        //查询每个工序的工序人
+        //先获取订单号和工序状态
+        ArrayList<String> orderNos = new ArrayList<>();
+        ArrayList<String> processStatus = new ArrayList<>();
+        for (OrderRespVO orderRespVO : orderRespVOS) {
+            orderNos.add(orderRespVO.getOrderNo());
+            processStatus.add(orderRespVO.getCurrentProcess());
+        }
+        //查询工序
+        List<OrderProcessHistoryDO> processHistoryDOS = orderProcessHistoryMapper.selectListByNosAndProcess(orderNos, processStatus);
+        //根据根据工单号和工单号为map，key为工单号-工单状态，value为工序
+        Map<String, OrderProcessHistoryDO> processHistoryMap = new HashMap<>(processHistoryDOS.size());
+        //从每个工序记录的do拿到工序人的创建人
+        List<String> processCreatorIds = processHistoryDOS
+                .stream().map(OrderProcessHistoryDO::getCreator)
+                .toList();
+        List<AdminUserSimpRespDTO> userSimpList = adminUserApi.getUserSimpList(processCreatorIds);
+        Map<String, AdminUserSimpRespDTO> processCreatorMap = new HashMap<>(processCreatorIds.size());
+        userSimpList.forEach(userSimpRespDTO -> processCreatorMap.put(userSimpRespDTO.getId(), userSimpRespDTO));
+        processHistoryDOS.forEach(processHistoryDO -> {
+            AdminUserSimpRespDTO simpRespDTO = processCreatorMap.getOrDefault(processHistoryDO.getCreator(), new AdminUserSimpRespDTO());
+            processHistoryDO.setCreator(simpRespDTO.getNickname());
+            if (StrUtil.isNotEmpty(processHistoryDO.getOrderNo()) &&
+                    StrUtil.isNotEmpty(processHistoryDO.getCurrentProcess())) {
+                processHistoryMap.put(processHistoryDO.getOrderNo() + "-" +
+                        processHistoryDO.getCurrentProcess(), processHistoryDO);
+            }
+        });
+        orderRespVOS.forEach(orderRespVO -> {
+            OrderProcessHistoryDO orDefault = processHistoryMap.getOrDefault(
+                    orderRespVO.getOrderNo() + "-" + orderRespVO.getCurrentProcess(),
+                    new OrderProcessHistoryDO());
+            orderRespVO.setCurrentProcessPerson(orDefault.getCreator());
+        });
+        return new PageResult<>(orderRespVOS, orderPage.getTotal());
     }
 
     @Override

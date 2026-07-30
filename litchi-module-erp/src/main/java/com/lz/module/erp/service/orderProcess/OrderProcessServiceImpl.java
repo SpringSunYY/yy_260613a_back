@@ -363,6 +363,7 @@ public class OrderProcessServiceImpl implements OrderProcessService {
             //更新明细
             orderService.updateOrder(orderDO);
             orderProcessMapper.updateById(BeanUtils.toBean(reqVO, OrderProcessDO.class));
+            createProcessHistory(reqVO.getOrderNo(), processDO.getCurrentProcess(), reqVO.getCurrentProcess());
         });
     }
 
@@ -385,6 +386,7 @@ public class OrderProcessServiceImpl implements OrderProcessService {
             orderDO.setNumber(totalNum);
             orderService.updateOrder(orderDO);
             orderProcessMapper.updateById(BeanUtils.toBean(saveReqVO, OrderProcessDO.class));
+            this.createProcessHistory(orderDO.getOrderNo(), processDO.getCurrentProcess(),reqVO.getCurrentProcess());
         });
     }
 

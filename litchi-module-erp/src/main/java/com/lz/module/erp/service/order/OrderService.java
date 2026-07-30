@@ -127,6 +127,14 @@ public interface OrderService {
     PageResult<OrderDO> getOrderPage(OrderPageReqVO pageReqVO);
 
     /**
+     * 获得订单信息列表
+     *
+     * @param pageReqVO 分页查询
+     * @return 订单信息列表
+     */
+    PageResult<OrderRespVO> getOrderPageList(@Valid OrderPageReqVO pageReqVO);
+
+    /**
      * 获得待发货订单信息分页
      *
      * @param pageReqVO 分页查询

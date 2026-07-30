@@ -1,7 +1,5 @@
 package com.lz.module.erp.controller.admin.order.vo;
 
-import com.lz.framework.common.annotation.Sortable;
-import com.lz.framework.common.validation.i18n.I18nSize;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
@@ -64,6 +62,12 @@ public class OrderRespVO {
      */
     @Schema(description = "当前工序", requiredMode = Schema.RequiredMode.REQUIRED)
     private String currentProcess;
+
+    /**
+     * 工序人
+     */
+    @Schema(description = "工序人")
+    private String currentProcessPerson;
 
     /**
      * 贷款

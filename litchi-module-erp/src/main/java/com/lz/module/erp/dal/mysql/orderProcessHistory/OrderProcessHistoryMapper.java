@@ -26,4 +26,10 @@ public interface OrderProcessHistoryMapper extends BaseMapperX<OrderProcessHisto
                 .applyOrderDesc(reqVO, OrderProcessHistoryDO::getId));
     }
 
+    default List<OrderProcessHistoryDO> selectListByNosAndProcess(List<String> orderNos, List<String> currentProcess){
+        return selectList(new LambdaQueryWrapperX<OrderProcessHistoryDO>()
+                .inIfPresent(OrderProcessHistoryDO::getOrderNo, orderNos)
+                .inIfPresent(OrderProcessHistoryDO::getCurrentProcess, currentProcess)
+                .orderByDesc(OrderProcessHistoryDO::getId));
+    };
 }

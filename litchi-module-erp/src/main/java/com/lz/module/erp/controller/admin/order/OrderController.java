@@ -169,8 +169,7 @@ public class OrderController {
     @Operation(summary = "获得订单信息分页")
     @PreAuthorize("@ss.hasPermission('erp:order:query')")
     public CommonResult<PageResult<OrderRespVO>> getOrderPage(@Valid OrderPageReqVO pageReqVO) {
-        PageResult<OrderDO> pageResult = orderService.getOrderPage(pageReqVO);
-        return success(BeanUtils.toBean(pageResult, OrderRespVO.class));
+        return success(orderService.getOrderPageList(pageReqVO));
     }
 
     /**
