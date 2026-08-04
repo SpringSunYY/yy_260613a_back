@@ -27,7 +27,6 @@ import com.lz.module.system.api.user.dto.AdminUserSimpRespDTO;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
-import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -85,7 +84,6 @@ public class OrderProcessServiceImpl implements OrderProcessService {
     @Override
     @DSTransactional
     public void updateOrderProcess(OrderProcessSaveReqVO reqVO) {
-        // 必须要有图片
         // 校验存在
         OrderProcessDO processDO = validateOrderProcessExists(reqVO.getId());
         //校验订单是否存在
@@ -127,6 +125,15 @@ public class OrderProcessServiceImpl implements OrderProcessService {
     @Override
     public OrderProcessDO validateOrderProcessExists(Long id) {
         OrderProcessDO orderProcessDO = orderProcessMapper.selectById(id);
+        if (orderProcessDO == null) {
+            throw exception(ORDER_PROCESS_NOT_EXISTS);
+        }
+        return orderProcessDO;
+    }
+
+    @Override
+    public OrderProcessDO validateOrderProcessExistsByOrderNo(String orderNo) {
+        OrderProcessDO orderProcessDO = this.getOrderProcessByOrderNo(orderNo);
         if (orderProcessDO == null) {
             throw exception(ORDER_PROCESS_NOT_EXISTS);
         }
@@ -315,7 +322,8 @@ public class OrderProcessServiceImpl implements OrderProcessService {
         orderProcessMapper.update(updateWrapper);
     }
 
-    private void createProcessHistory(String orderNo, String oldProcess, String currentProcess) {
+    @Override
+    public void createProcessHistory(String orderNo, String oldProcess, String currentProcess) {
         OrderProcessHistorySaveReqVO createReqVO = new OrderProcessHistorySaveReqVO();
         createReqVO.setOrderNo(orderNo);
         createReqVO.setOldProcess(oldProcess);
@@ -386,7 +394,7 @@ public class OrderProcessServiceImpl implements OrderProcessService {
             orderDO.setNumber(totalNum);
             orderService.updateOrder(orderDO);
             orderProcessMapper.updateById(BeanUtils.toBean(saveReqVO, OrderProcessDO.class));
-            this.createProcessHistory(orderDO.getOrderNo(), processDO.getCurrentProcess(),reqVO.getCurrentProcess());
+            this.createProcessHistory(orderDO.getOrderNo(), processDO.getCurrentProcess(), reqVO.getCurrentProcess());
         });
     }
 

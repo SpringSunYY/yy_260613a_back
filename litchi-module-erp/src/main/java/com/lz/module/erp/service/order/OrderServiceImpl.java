@@ -161,11 +161,18 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @DSTransactional(rollbackFor = Exception.class)
     public void shipOrder(OrderShipReqVO shipReqVO) {
+        //查询订单是否存在
+        OrderDO orderDO = validateOrderExists(shipReqVO.getId(), null);
         shipReqVO.setCurrentProcess(ErpOrderCurrentProcessEnum.ORDER_CURRENT_PROCESS_7.getStatus());
-        orderProcessService.updateOrderProcess(BeanUtils.toBean(shipReqVO, OrderProcessSaveReqVO.class));
+        OrderProcessDO processDO = orderProcessService.validateOrderProcessExistsByOrderNo(orderDO.getOrderNo());
+        String oldProcess = processDO.getCurrentProcess();
+        processDO.setCurrentProcess(shipReqVO.getCurrentProcess());
+        orderProcessMapper.updateById(processDO);
         orderMapper.updateById(BeanUtils.toBean(shipReqVO, OrderDO.class));
+        //创建订单工序记录
+        orderProcessService.createProcessHistory(processDO.getOrderNo(),oldProcess,shipReqVO.getCurrentProcess());
         //需要判断是否已经发货，并且构建向量
-        validateOrderShip(shipReqVO);
+        validateOrderShip(processDO);
     }
 
     @Override
@@ -524,21 +531,7 @@ public class OrderServiceImpl implements OrderService {
         return orderMapper.getOrderPostageStatistics(pageReqVO);
     }
 
-    private void validateOrderShip(OrderShipReqVO reqVO) {
-        //查询订单
-        OrderDO orderDO = this.getOrderByOrderNo(reqVO.getOrderNo());
-        if (ObjUtil.isNull(orderDO)) {
-            throw exception(ORDER_NOT_EXISTS);
-        }
-        //如果还没有发货
-        if (ObjUtil.isNull(orderDO.getShippingTime())) {
-            throw exception(ORDER_NOT_SHIPPED);
-        }
-        //拿到订单
-        OrderProcessDO processDO = orderProcessService.getOrderProcessByOrderNo(reqVO.getOrderNo());
-        if (ObjUtil.isNull(processDO)) {
-            throw exception(ORDER_PROCESS_NOT_EXISTS);
-        }
+    private void validateOrderShip(OrderProcessDO processDO) {
         //判断是否有图片
         if (StrUtil.isEmpty(processDO.getOrderImage())) {
             throw exception(ORDER_NOT_ORDER_IMAGE);

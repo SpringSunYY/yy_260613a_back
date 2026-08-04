@@ -43,6 +43,8 @@ public interface OrderProcessService {
      */
     void deleteOrderProcessListByIds(List<Long> ids);
 
+    OrderProcessDO validateOrderProcessExistsByOrderNo(String orderNo);
+
     /**
      * 获得订单工序
      *
@@ -93,6 +95,14 @@ public interface OrderProcessService {
      * @param currentProcess 当前工序
      */
     void updateProcessToTargetProcessByNo(String orderNo, String oldProcess, String currentProcess);
+
+
+
+    /**
+     * 创建订单工序历史
+     *
+     */
+    void createProcessHistory(String orderNo, String oldProcess, String currentProcess);
 
     /**
      * 更新订单工序状态
