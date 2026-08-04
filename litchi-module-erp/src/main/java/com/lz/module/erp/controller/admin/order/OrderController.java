@@ -231,14 +231,14 @@ public class OrderController {
 
     @GetMapping("/statistics/loan")
     @Operation(summary = "订单信息统计-贷款")
-    @PreAuthorize("@ss.hasPermission('erp:order:query')")
+    @PreAuthorize("@ss.hasPermission('erp:order:filed:loan')")
     public CommonResult<List<OrderStatisticsRespVO>> getOrderLoanStatistics(@Valid OrderPageReqVO pageReqVO) {
        return success(orderService.getOrderLoanStatistics(pageReqVO));
     }
 
     @GetMapping("/statistics/postage")
     @Operation(summary = "订单信息统计-邮费")
-    @PreAuthorize("@ss.hasPermission('erp:order:query')")
+    @PreAuthorize("@ss.hasPermission('erp:order:filed:postage')")
     public CommonResult<List<OrderStatisticsRespVO>> getOrderPostageStatistics(@Valid OrderPageReqVO pageReqVO) {
        return success(orderService.getOrderPostageStatistics(pageReqVO));
     }

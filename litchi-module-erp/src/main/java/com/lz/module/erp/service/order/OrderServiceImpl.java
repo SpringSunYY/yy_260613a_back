@@ -129,6 +129,7 @@ public class OrderServiceImpl implements OrderService {
 
         orderProcess.setOrderStatus(order.getOrderStatus());
         orderProcess.setOrderNo(order.getOrderNo());
+        orderProcess.setRemark(order.getRemark());
     }
 
     @Override

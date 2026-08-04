@@ -95,7 +95,7 @@ public class OrderSaveReqVO {
      * 邮费
      */
     @Schema(description = "邮费", requiredMode = Schema.RequiredMode.REQUIRED)
-    @I18nNotNull(i18nKey = "erp.order.back.postage.notNull", message = "邮费不能为空")
+//    @I18nNotNull(i18nKey = "erp.order.back.postage.notNull", message = "邮费不能为空")
     private BigDecimal postage;
 
     /**

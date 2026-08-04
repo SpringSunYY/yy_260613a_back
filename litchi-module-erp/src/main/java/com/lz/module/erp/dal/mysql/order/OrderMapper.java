@@ -66,6 +66,7 @@ public interface OrderMapper extends BaseMapperX<OrderDO> {
 
     default List<OrderStatisticsRespVO> getOrderStatistics(OrderPageReqVO pageReqVO) {
         LambdaQueryWrapperX<OrderDO> queryWrapperX = builderQueryConditions(pageReqVO);
+        queryWrapperX.eq(OrderDO::getDeleted,false);
         return getOrderStatistics(queryWrapperX);
     }
 
@@ -75,12 +76,14 @@ public interface OrderMapper extends BaseMapperX<OrderDO> {
         LambdaQueryWrapperX<OrderDO> queryWrapperX = builderQueryConditions(pageReqVO);
         queryWrapperX.isNull(OrderDO::getShippingTime);
         queryWrapperX.eq(OrderDO::getAuditStatus, ErpOrderAuditStatusEnum.ORDER_AUDIT_STATUS_3.getStatus());
+        queryWrapperX.eq(OrderDO::getDeleted,false);
         return getOrderStatistics(queryWrapperX);
-    };
+    }
 
     default List<OrderStatisticsRespVO> getOrderLoanStatistics(OrderPageReqVO pageReqVO){
         LambdaQueryWrapperX<OrderDO> queryWrapperX = builderQueryConditions(pageReqVO);
         queryWrapperX.isNotNull(OrderDO::getLoanStatus);
+        queryWrapperX.eq(OrderDO::getDeleted,false);
         return getOrderLoanStatisticsByLoanStatus(queryWrapperX);
     }
 
@@ -89,6 +92,7 @@ public interface OrderMapper extends BaseMapperX<OrderDO> {
     default List<OrderStatisticsRespVO> getOrderPostageStatistics(OrderPageReqVO pageReqVO){
         LambdaQueryWrapperX<OrderDO> queryWrapperX = builderQueryConditions(pageReqVO);
         queryWrapperX.isNotNull(OrderDO::getPostageStatus);
+        queryWrapperX.eq(OrderDO::getDeleted,false);
         return getOrderPostageStatisticsByPostageStatus(queryWrapperX);
     }
 
