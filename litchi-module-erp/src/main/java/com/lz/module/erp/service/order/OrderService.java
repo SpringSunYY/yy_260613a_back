@@ -162,7 +162,7 @@ public interface OrderService {
 
     // ===================== 统计 =====================
 
-    int updateOrderDetailList(String orderNo, List<OrderDetailSaveReqVO> list);
+    int updateOrderDetailList(String orderNo, List<OrderDetailSaveReqVO> list,String newOrderNo);
 
     /**
      * 订单统计

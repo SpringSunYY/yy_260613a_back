@@ -6,10 +6,12 @@ import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.StrUtil;
 import com.anji.captcha.util.StringUtils;
 import com.baomidou.dynamic.datasource.annotation.DSTransactional;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.lz.framework.common.biz.system.dict.DictDataCommonApi;
 import com.lz.framework.common.biz.system.dict.dto.DictDataRespDTO;
 import com.lz.framework.common.pojo.PageResult;
+import com.lz.framework.common.util.collection.ArrayUtils;
 import com.lz.framework.common.util.object.BeanUtils;
 import com.lz.framework.common.util.object.ObjectUtils;
 import com.lz.module.erp.controller.admin.order.vo.*;
@@ -17,10 +19,12 @@ import com.lz.module.erp.controller.admin.orderProcess.vo.OrderProcessRespVO;
 import com.lz.module.erp.controller.admin.orderProcess.vo.OrderProcessSaveReqVO;
 import com.lz.module.erp.dal.dataobject.order.OrderDO;
 import com.lz.module.erp.dal.dataobject.order.OrderDetailDO;
+import com.lz.module.erp.dal.dataobject.orderAudit.OrderAuditDO;
 import com.lz.module.erp.dal.dataobject.orderProcess.OrderProcessDO;
 import com.lz.module.erp.dal.dataobject.orderProcessHistory.OrderProcessHistoryDO;
 import com.lz.module.erp.dal.mysql.order.OrderDetailMapper;
 import com.lz.module.erp.dal.mysql.order.OrderMapper;
+import com.lz.module.erp.dal.mysql.orderAudit.OrderAuditMapper;
 import com.lz.module.erp.dal.mysql.orderProcess.OrderProcessMapper;
 import com.lz.module.erp.dal.mysql.orderProcessHistory.OrderProcessHistoryMapper;
 import com.lz.module.erp.enums.ErpDictTypeConstants;
@@ -88,6 +92,9 @@ public class OrderServiceImpl implements OrderService {
     private OrderProcessHistoryMapper orderProcessHistoryMapper;
 
     @Resource
+    private OrderAuditMapper orderAuditMapper;
+
+    @Resource
     private TransactionTemplate transactionTemplate;
 
     @Override
@@ -137,20 +144,52 @@ public class OrderServiceImpl implements OrderService {
     public void updateOrder(OrderSaveReqVO updateReqVO) {
         // 校验存在
         OrderDO orderOldDO = validateOrderExists(updateReqVO.getId(), null);
-        //如果两个订单号不一样，不可以修改订单号
+        String newOrderNo = null;
+        //如果两个订单号不一样，更新子表的所有的订单号
         if (!orderOldDO.getOrderNo().equals(updateReqVO.getOrderNo())) {
-            throw exception(ORDER_NO_NOT_EQUALS);
+            //查询是否存在新订单
+            validateOrderExists(null, updateReqVO.getOrderNo());
+            newOrderNo = updateReqVO.getOrderNo();
+            //更新审核记录和工序记录
+            updateOrderAudit(orderOldDO.getOrderNo(), updateReqVO.getOrderNo());
+            updateOrderProcessHistory(orderOldDO.getOrderNo(), updateReqVO.getOrderNo());
         }
 
         OrderDO orderDO = BeanUtils.toBean(updateReqVO, OrderDO.class);
         // 更新子表
-        int total = updateOrderDetailList(orderOldDO.getOrderNo(), updateReqVO.getOrderDetails());
+        int total = updateOrderDetailList(orderOldDO.getOrderNo(), updateReqVO.getOrderDetails(), newOrderNo);
         orderDO.setNumber(total);
         //更新工序
         OrderProcessSaveReqVO orderProcess = updateReqVO.getOrderProcess();
         initOrderByProcess(orderDO, orderProcess);
-        updateOrderProcess(updateReqVO.getOrderNo(), orderProcess);
+        updateOrderProcess(orderOldDO.getOrderNo(), updateReqVO.getOrderNo(), orderProcess);
         orderMapper.updateById(orderDO);
+    }
+
+    private void updateOrderProcessHistory(String oldOrderNo, String newOrderNo) {
+        //查询订单工序记录
+        List<OrderProcessHistoryDO> orderProcessHistoryDOList = orderProcessHistoryMapper.selectList(new LambdaQueryWrapper<OrderProcessHistoryDO>()
+                .eq(OrderProcessHistoryDO::getOrderNo, oldOrderNo));
+        if (CollUtil.isEmpty(orderProcessHistoryDOList)) {
+            return;
+        }
+        orderProcessHistoryDOList.forEach(orderProcessHistoryDO -> {
+            orderProcessHistoryDO.setOrderNo(newOrderNo);
+        });
+        orderProcessHistoryMapper.updateBatch(orderProcessHistoryDOList);
+    }
+
+    private void updateOrderAudit(String oldOrderNo, String newOrderNo) {
+        //查询订单审核记录
+        List<OrderAuditDO> orderAuditDOList = orderAuditMapper.selectList(new LambdaQueryWrapper<OrderAuditDO>()
+                .eq(OrderAuditDO::getOrderNo, oldOrderNo));
+        if (CollUtil.isEmpty(orderAuditDOList)) {
+            return;
+        }
+        orderAuditDOList.forEach(orderAuditDO -> {
+            orderAuditDO.setOrderNo(newOrderNo);
+        });
+        orderAuditMapper.updateBatch(orderAuditDOList);
     }
 
     @Override
@@ -170,7 +209,7 @@ public class OrderServiceImpl implements OrderService {
         orderProcessMapper.updateById(processDO);
         orderMapper.updateById(BeanUtils.toBean(shipReqVO, OrderDO.class));
         //创建订单工序记录
-        orderProcessService.createProcessHistory(processDO.getOrderNo(),oldProcess,shipReqVO.getCurrentProcess());
+        orderProcessService.createProcessHistory(processDO.getOrderNo(), oldProcess, shipReqVO.getCurrentProcess());
         //需要判断是否已经发货，并且构建向量
         validateOrderShip(processDO);
     }
@@ -222,11 +261,12 @@ public class OrderServiceImpl implements OrderService {
     /**
      * 更新工序
      *
-     * @param orderNo      订单号
+     * @param oldOrderNo   订单号
+     * @param newOrderNo   新的订单号
      * @param orderProcess 工序
      */
-    private void updateOrderProcess(String orderNo, OrderProcessSaveReqVO orderProcess) {
-        OrderProcessDO orderProcessDO = orderProcessMapper.selectOne(OrderProcessDO::getOrderNo, orderNo);
+    private void updateOrderProcess(String oldOrderNo, String newOrderNo, OrderProcessSaveReqVO orderProcess) {
+        OrderProcessDO orderProcessDO = orderProcessMapper.selectOne(OrderProcessDO::getOrderNo, oldOrderNo);
         //如果不存在表示新增
         if (ObjectUtils.isNull(orderProcessDO)) {
             orderProcess.setCurrentProcess(ErpOrderCurrentProcessEnum.ORDER_CURRENT_PROCESS_1.getStatus());
@@ -235,7 +275,7 @@ public class OrderServiceImpl implements OrderService {
         }
         //赋值id
         orderProcess.setId(orderProcessDO.getId());
-        orderProcessDO.setOrderNo(orderNo);
+        orderProcessDO.setOrderNo(StrUtil.isEmpty(newOrderNo) ? oldOrderNo : newOrderNo);
         orderProcessDO = BeanUtils.toBean(orderProcess, OrderProcessDO.class);
         orderProcessMapper.updateById(orderProcessDO);
     }
@@ -467,15 +507,20 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public int updateOrderDetailList(String orderNo, List<OrderDetailSaveReqVO> list) {
-        list.forEach(o -> o.setOrderNo(orderNo));
+    public int updateOrderDetailList(String oldOrderNo, List<OrderDetailSaveReqVO> list, String newOrderNo) {
         //使用老的订单号查询
-        List<OrderDetailDO> oldList = orderDetailMapper.selectListByOrderNo(orderNo);
+        List<OrderDetailDO> oldList = orderDetailMapper.selectListByOrderNo(oldOrderNo);
         List<OrderDetailDO> newList = BeanUtils.toBean(list, OrderDetailDO.class);
         List<List<OrderDetailDO>> diffList = diffList(oldList, newList, (oldVal, newVal) -> {
             boolean same = ObjectUtil.equal(oldVal.getId(), newVal.getId());
             if (same) {
-                newVal.setId(oldVal.getId()).setOrderNo(orderNo).clean(); // 解决更新情况下：updateTime 不更新
+                newVal.setId(oldVal.getId())
+                        .clean(); // 解决更新情况下：updateTime 不更新
+            }
+            if (StrUtil.isNotEmpty(newOrderNo)) {
+                newVal.setOrderNo(newOrderNo);
+            } else {
+                newVal.setOrderNo(oldOrderNo);
             }
             return same;
         });

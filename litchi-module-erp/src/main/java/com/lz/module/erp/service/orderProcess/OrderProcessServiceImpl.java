@@ -390,7 +390,7 @@ public class OrderProcessServiceImpl implements OrderProcessService {
         orderService.initOrderByProcess(orderDO, saveReqVO);
         transactionTemplate.executeWithoutResult(result -> {
             //更新明细
-            int totalNum = orderService.updateOrderDetailList(orderDO.getOrderNo(), reqVO.getOrderDetails());
+            int totalNum = orderService.updateOrderDetailList(orderDO.getOrderNo(), reqVO.getOrderDetails(), null);
             orderDO.setNumber(totalNum);
             orderService.updateOrder(orderDO);
             orderProcessMapper.updateById(BeanUtils.toBean(saveReqVO, OrderProcessDO.class));
