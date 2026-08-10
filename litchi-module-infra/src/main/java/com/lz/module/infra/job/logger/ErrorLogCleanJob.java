@@ -23,12 +23,12 @@ public class ErrorLogCleanJob implements JobHandler {
     /**
      * 清理超过（14）天的日志
      */
-    private static final Integer JOB_CLEAN_RETAIN_DAY = 14;
+    private static final Integer JOB_CLEAN_RETAIN_DAY = 7;
 
     /**
      * 每次删除间隔的条数，如果值太高可能会造成数据库的压力过大
      */
-    private static final Integer DELETE_LIMIT = 100;
+    private static final Integer DELETE_LIMIT = 1000;
 
     @Override
     @TenantIgnore
