@@ -38,7 +38,7 @@ public interface OrderMapper extends BaseMapperX<OrderDO> {
                 .eqIfPresent(OrderDO::getLoanStatus, reqVO.getLoanStatus())
                 .betweenIfPresent(OrderDO::getPostage, reqVO.getPostage())
                 .eqIfPresent(OrderDO::getPostageStatus, reqVO.getPostageStatus())
-                .eqIfPresent(OrderDO::getOrderNo, reqVO.getOrderNo())
+                .likeIfPresent(OrderDO::getOrderNo, reqVO.getOrderNo())
                 .betweenIfPresent(OrderDO::getOrderTime, reqVO.getOrderTime())
                 .eqIfPresent(OrderDO::getOrderResource, reqVO.getOrderResource())
                 .eqIfPresent(OrderDO::getOrderStatus, reqVO.getOrderStatus())
@@ -53,6 +53,7 @@ public interface OrderMapper extends BaseMapperX<OrderDO> {
                 .betweenIfPresent(OrderDO::getExceptShippingTime, reqVO.getExceptShippingTime())
                 .eqIfPresent(OrderDO::getShippingNo, reqVO.getShippingNo())
                 .betweenIfPresent(OrderDO::getShippingTime, reqVO.getShippingTime())
+                .likeIfPresent(OrderDO::getShippingAddress, reqVO.getShippingAddress())
                 .eqIfPresent(OrderDO::getPrintStatus, reqVO.getPrintStatus())
                 .betweenIfPresent(OrderDO::getCreateTime, reqVO.getCreateTime());
     }

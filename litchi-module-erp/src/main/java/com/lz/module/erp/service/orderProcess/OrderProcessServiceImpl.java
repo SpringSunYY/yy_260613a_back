@@ -264,6 +264,7 @@ public class OrderProcessServiceImpl implements OrderProcessService {
                 FileSimpVo fileSimpVo = fileSimpMap.getOrDefault(orDefault.getPrintImage(), new FileSimpVo());
                 printImage = fileSimpVo.getRelativePath();
             }
+            respVO.setName(orDefault.getName());
             respVO.setExceptShippingTime(orDefault.getExceptShippingTime());
             respVO.setOrderTime(orDefault.getOrderTime());
             respVO.setNumber(orDefault.getNumber());

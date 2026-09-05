@@ -11,7 +11,6 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.lz.framework.common.biz.system.dict.DictDataCommonApi;
 import com.lz.framework.common.biz.system.dict.dto.DictDataRespDTO;
 import com.lz.framework.common.pojo.PageResult;
-import com.lz.framework.common.util.collection.ArrayUtils;
 import com.lz.framework.common.util.object.BeanUtils;
 import com.lz.framework.common.util.object.ObjectUtils;
 import com.lz.module.erp.controller.admin.order.vo.*;
@@ -537,7 +536,8 @@ public class OrderServiceImpl implements OrderService {
         }
         //计算总数
         int total = 0;
-        for (List<OrderDetailDO> orderDetailDOS : diffList) {
+        for (int i = 0; i < diffList.size() - 1; i++) {
+            List<OrderDetailDO> orderDetailDOS = diffList.get(i);
             total += orderDetailDOS.stream()
                     .filter(d -> d.getSetQuantity() != null)
                     .mapToInt(OrderDetailDO::getSetQuantity)

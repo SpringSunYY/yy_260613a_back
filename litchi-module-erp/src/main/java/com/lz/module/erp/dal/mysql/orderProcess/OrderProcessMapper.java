@@ -27,7 +27,7 @@ public interface OrderProcessMapper extends BaseMapperX<OrderProcessDO> {
                 .notInIfPresent(OrderProcessDO::getCurrentProcess, reqVO.getNotInCurrentProcesses())
                 .inIfPresent(OrderProcessDO::getCurrentProcess, reqVO.getInCurrentProcesses())
                 .eqIfPresent(OrderProcessDO::getOrderStatus, reqVO.getOrderStatus())
-                .eqIfPresent(OrderProcessDO::getOrderNo, reqVO.getOrderNo())
+                .likeIfPresent(OrderProcessDO::getOrderNo, reqVO.getOrderNo())
                 .likeIfPresent(OrderProcessDO::getLayoutPerson, reqVO.getLayoutPerson())
                 .eqIfPresent(OrderProcessDO::getPattern, reqVO.getPattern())
                 .eqIfPresent(OrderProcessDO::getFabric, reqVO.getFabric())

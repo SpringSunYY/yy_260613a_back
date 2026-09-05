@@ -160,6 +160,12 @@ public class OrderPageReqVO extends PageParam {
     private LocalDateTime[] shippingTime;
 
     /**
+     * 发货地址
+     */
+    @Schema(description = "发货地址")
+    private String shippingAddress;
+
+    /**
     * 打印状态
     */
     @Schema(description = "打印状态", example = "1")
