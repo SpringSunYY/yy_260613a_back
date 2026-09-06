@@ -32,8 +32,7 @@ import com.lz.module.erp.enums.ErpOrderCurrentProcessEnum;
 import com.lz.module.erp.enums.ErpOrderPrintStatusEnum;
 import com.lz.module.erp.service.orderProcess.OrderProcessService;
 import com.lz.module.erp.service.orderVector.OrderVectorService;
-import com.lz.module.infra.api.file.FileApi;
-import com.lz.module.infra.api.file.dto.FileSimpVo;
+import com.lz.framework.common.biz.infra.file.dto.FileSimpVo;
 import com.lz.module.system.api.user.AdminUserApi;
 import com.lz.module.system.api.user.dto.AdminUserSimpRespDTO;
 import jakarta.annotation.Resource;
@@ -85,7 +84,7 @@ public class OrderServiceImpl implements OrderService {
     private DictDataCommonApi dictDataCommonApi;
 
     @Resource
-    private FileApi fileApi;
+    private com.lz.framework.common.biz.infra.file.FileCommonApi fileCommonApi;
 
     @Resource
     private OrderProcessHistoryMapper orderProcessHistoryMapper;
@@ -237,7 +236,7 @@ public class OrderServiceImpl implements OrderService {
             Long fileId = StrUtil.isEmpty(orderDO.getPrintImage()) ? null : Long.valueOf(orderDO.getPrintImage());
 
             byte[] bytes = reqVO.getFile().getBytes();
-            FileSimpVo erp = fileApi.createFileReturnFileSimpVo(bytes, "erp");
+            FileSimpVo erp = fileCommonApi.createFileReturnFileSimpVo(bytes, "erp");
             orderDO.setPrintImage(erp.getId().toString());
             transactionTemplate.executeWithoutResult(result -> {
                 orderMapper.updateById(orderDO);
@@ -245,7 +244,7 @@ public class OrderServiceImpl implements OrderService {
                 //如果有文件了
                 if (ObjUtil.isNotNull(fileId)) {
                     try {
-                        fileApi.deleteFile(fileId);
+                        fileCommonApi.deleteFile(fileId);
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
@@ -453,7 +452,7 @@ public class OrderServiceImpl implements OrderService {
         try {
             //把文件ids转为long
             List<Long> fileIdsLong = fileIds.stream().map(Long::parseLong).toList();
-            List<FileSimpVo> fileSimpVos = fileApi.getFileSimpList(fileIdsLong);
+            List<FileSimpVo> fileSimpVos = fileCommonApi.getFileSimpList(fileIdsLong);
             //把结果转为map，key为文件id，value为文件simp，key要toString
             Map<String, FileSimpVo> fileSimpMap = fileSimpVos.stream()
                     .collect(Collectors.toMap(k -> k.getId().toString(),

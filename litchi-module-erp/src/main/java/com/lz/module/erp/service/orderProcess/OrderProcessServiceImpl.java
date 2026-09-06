@@ -20,8 +20,7 @@ import com.lz.module.erp.enums.ErpOrderCurrentProcessEnum;
 import com.lz.module.erp.enums.PerConstants;
 import com.lz.module.erp.service.order.OrderService;
 import com.lz.module.erp.service.orderProcessHistory.OrderProcessHistoryService;
-import com.lz.module.infra.api.file.FileApi;
-import com.lz.module.infra.api.file.dto.FileSimpVo;
+import com.lz.framework.common.biz.infra.file.dto.FileSimpVo;
 import com.lz.module.system.api.user.AdminUserApi;
 import com.lz.module.system.api.user.dto.AdminUserSimpRespDTO;
 import jakarta.annotation.Resource;
@@ -67,7 +66,7 @@ public class OrderProcessServiceImpl implements OrderProcessService {
     @Resource
     private SecurityFrameworkService securityFrameworkService;
     @Resource
-    private FileApi fileApi;
+    private com.lz.framework.common.biz.infra.file.FileCommonApi fileCommonApi;
     @Resource
     private TransactionTemplate transactionTemplate;
 
@@ -193,7 +192,7 @@ public class OrderProcessServiceImpl implements OrderProcessService {
         try {
             //把文件ids转为long
             List<Long> fileIdsLong = fileIds.stream().map(Long::parseLong).toList();
-            List<FileSimpVo> fileSimpVos = fileApi.getFileSimpList(fileIdsLong);
+            List<FileSimpVo> fileSimpVos = fileCommonApi.getFileSimpList(fileIdsLong);
             //把结果转为map，key为文件id，value为文件simp，key要toString
             fileSimpMap = fileSimpVos.stream()
                     .collect(Collectors.toMap(k -> k.getId().toString(),
@@ -248,7 +247,7 @@ public class OrderProcessServiceImpl implements OrderProcessService {
             if (pageReqVO.getQueryPrintImage()) {
                 //把文件ids转为long
                 List<Long> fileIdsLong = fileIds.stream().map(Long::parseLong).toList();
-                List<FileSimpVo> fileSimpVos = fileApi.getFileSimpList(fileIdsLong);
+                List<FileSimpVo> fileSimpVos = fileCommonApi.getFileSimpList(fileIdsLong);
                 //把结果转为map，key为文件id，value为文件simp，key要toString
                 fileSimpMap = fileSimpVos.stream()
                         .collect(Collectors.toMap(k -> k.getId().toString(),

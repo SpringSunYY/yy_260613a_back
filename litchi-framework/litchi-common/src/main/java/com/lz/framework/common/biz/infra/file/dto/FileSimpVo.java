@@ -1,4 +1,4 @@
-package com.lz.module.infra.api.file.dto;
+package com.lz.framework.common.biz.infra.file.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

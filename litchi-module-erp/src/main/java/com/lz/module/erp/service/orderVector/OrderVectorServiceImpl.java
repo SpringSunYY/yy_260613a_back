@@ -16,7 +16,6 @@ import com.lz.module.erp.dal.dataobject.orderProcess.OrderProcessDO;
 import com.lz.module.erp.dal.dataobject.orderVector.OrderVectorDO;
 import com.lz.module.erp.dal.mysql.orderVector.OrderVectorMapper;
 import com.lz.module.erp.service.orderProcess.OrderProcessService;
-import com.lz.module.infra.api.file.FileApi;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
@@ -31,6 +30,7 @@ import java.util.stream.Collectors;
 
 import static com.lz.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static com.lz.module.erp.enums.ErrorCodeConstants.*;
+import static com.lz.module.infra.constants.FileConstants.FILE_PATH_SEPARATOR;
 
 /**
  * 订单向量 Service 实现类
@@ -49,7 +49,7 @@ public class OrderVectorServiceImpl implements OrderVectorService {
     private ImageIndexService imageIndexService;
 
     @Resource
-    private FileApi fileApi;
+    private com.lz.framework.common.biz.infra.file.FileCommonApi fileCommonApi;
 
     @Resource
     private OrderProcessService orderProcessService;
@@ -119,7 +119,7 @@ public class OrderVectorServiceImpl implements OrderVectorService {
         //转换为地址列表
         List<String> imageUrlDos = orderVectorDOS.stream().map(OrderVectorDO::getImageUrl).toList();
         //使用分隔符||分割文件
-        String[] orderImages = imageUrls.split("\\|\\|");
+        String[] orderImages = imageUrls.split(FILE_PATH_SEPARATOR);
         //过滤出尚未构建向量的图片地址
         List<String> newImages = Arrays.stream(orderImages)
                 .filter(img -> !imageUrlDos.contains(img))
@@ -151,7 +151,7 @@ public class OrderVectorServiceImpl implements OrderVectorService {
         List<QueryResult> queryOldResults = imageIndexService.queryByOriginKey(orderNo, CollectionConstants.ERP_ORDER_IMAGE_VECTOR);
 
         //使用分隔符||分割文件
-        String[] orderImages = orderImage.split("\\|\\|");
+        String[] orderImages = orderImage.split(FILE_PATH_SEPARATOR);
         ArrayList<OrderVectorDO> vectorNewDOS = getVectorNewDos(orderNo, orderImages);
         //先删除数据
         if (!vectorOldDOS.isEmpty()) {
@@ -180,7 +180,7 @@ public class OrderVectorServiceImpl implements OrderVectorService {
             OrderVectorDO orderVector = new OrderVectorDO();
             orderVector.setOrderNo(orderNo);
             orderVector.setImageUrl(imageUrl);
-            byte[] fileContent = fileApi.getFileContent(imageUrl);
+            byte[] fileContent = fileCommonApi.getFileContent(imageUrl);
             try {
                 VectorRecord vectorRecord = imageIndexService.index(imageUrl, fileContent,
                         orderNo, CollectionConstants.ERP_ORDER_IMAGE_VECTOR);

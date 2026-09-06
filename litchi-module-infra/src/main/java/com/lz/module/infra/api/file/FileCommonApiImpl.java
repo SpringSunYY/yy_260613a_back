@@ -1,8 +1,9 @@
 package com.lz.module.infra.api.file;
 
 import cn.hutool.core.util.StrUtil;
+import com.lz.framework.common.biz.infra.file.FileCommonApi;
+import com.lz.framework.common.biz.infra.file.dto.FileSimpVo;
 import com.lz.framework.common.util.collection.ArrayUtils;
-import com.lz.module.infra.api.file.dto.FileSimpVo;
 import com.lz.module.infra.controller.admin.file.vo.file.FileUploadRespVO;
 import com.lz.module.infra.dal.dataobject.file.FileDO;
 import com.lz.module.infra.service.file.FileService;
@@ -14,6 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static com.lz.module.infra.constants.FileConstants.FILE_GET_PATH_PREFIX;
+import static com.lz.module.infra.constants.FileConstants.FILE_PATH_SEPARATOR;
 
 /**
  * 文件 API 实现类
@@ -22,7 +24,7 @@ import static com.lz.module.infra.constants.FileConstants.FILE_GET_PATH_PREFIX;
  */
 @Service
 @Validated
-public class FileApiImpl implements FileApi {
+public class FileCommonApiImpl implements FileCommonApi {
 
     @Resource
     private FileService fileService;
@@ -52,6 +54,19 @@ public class FileApiImpl implements FileApi {
         String configKey = split[0];
         String filePath = split[1];
         return fileService.buildFileAccessUrl(configKey, filePath);
+    }
+
+    @Override
+    public List<byte[]> getFileContents(String path) {
+        if (StrUtil.isEmpty(path)) {
+            return new ArrayList<>();
+        }
+        String[] paths = path.split(FILE_PATH_SEPARATOR);
+        ArrayList<byte[]> results = new ArrayList<>();
+        for (String p : paths) {
+            results.add(fileService.getFileContent(p));
+        }
+        return results;
     }
 
     @Override

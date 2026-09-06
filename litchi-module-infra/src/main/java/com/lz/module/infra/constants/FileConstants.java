@@ -8,6 +8,11 @@ package com.lz.module.infra.constants;
 public class FileConstants {
 
     /**
+     * 文件路径分隔符
+     */
+    public static final String FILE_PATH_SEPARATOR = "||";
+
+    /**
      * 文件类型分隔符
      */
     public static final String FILE_TYPE_SEPARATOR = ";";

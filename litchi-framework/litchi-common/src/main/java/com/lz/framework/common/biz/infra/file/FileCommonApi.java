@@ -1,6 +1,6 @@
-package com.lz.module.infra.api.file;
+package com.lz.framework.common.biz.infra.file;
 
-import com.lz.module.infra.api.file.dto.FileSimpVo;
+import com.lz.framework.common.biz.infra.file.dto.FileSimpVo;
 import jakarta.validation.constraints.NotEmpty;
 
 import java.util.List;
@@ -10,7 +10,7 @@ import java.util.List;
  *
  * @author 荔枝源码
  */
-public interface FileApi {
+public interface FileCommonApi {
 
     /**
      * 保存文件，并返回文件的访问路径
@@ -46,18 +46,7 @@ public interface FileApi {
         return createFile(content, name, directory, type, null);
     }
 
-    /**
-     * 保存文件，并返回文件的访问路径
-     *
-     * @param content    文件内容
-     * @param name       文件名称，允许空
-     * @param directory  目录，允许空
-     * @param type       文件的 MIME 类型，允许空
-     * @param moduleType 模块类型，允许空
-     * @return 文件路径
-     */
-    String createFile(@NotEmpty(message = "文件内容不能为空") byte[] content,
-                      String name, String directory, String type, String moduleType);
+    String createFile(byte[] content, String name, String directory, String type, String moduleType);
 
     /**
      * 获取文件路径
@@ -69,7 +58,12 @@ public interface FileApi {
     /**
      * 获取文件内容
      */
-    byte[] getFileContent(@NotEmpty(message = "文件路径不能为空") String path);
+    List<byte[]> getFileContents(String path);
+
+    /**
+     * 获取文件内容
+     */
+    public byte[] getFileContent(String path);
 
     /**
      * 创建文件返回文件保存信息
