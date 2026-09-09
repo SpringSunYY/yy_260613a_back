@@ -56,6 +56,13 @@ public interface FileCommonApi {
     String getFilePath(@NotEmpty(message = "文件路径不能为空") String path);
 
     /**
+     * 获取文件路径列表
+     *
+     * @param path 文件路径
+     */
+    List<String> getFilePaths(@NotEmpty(message = "文件路径不能为空") String path);
+
+    /**
      * 获取文件内容
      */
     List<byte[]> getFileContents(String path);

@@ -1,10 +1,13 @@
 package com.lz.module.erp.controller.admin.order.vo;
+
 import com.alibaba.excel.annotation.ExcelProperty;
+import com.alibaba.excel.annotation.write.style.ColumnWidth;
 import com.lz.framework.common.validation.i18n.I18nNotEmpty;
 import com.lz.framework.common.validation.i18n.I18nNotNull;
 import com.lz.framework.excel.core.annotations.ExcelColumnSelect;
 import com.lz.framework.excel.core.annotations.ExcelI18n;
 import com.lz.framework.excel.core.convert.DictConvert;
+import com.lz.framework.excel.core.convert.ImagesConvert;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -30,33 +33,34 @@ import java.time.LocalDateTime;
 public class OrderExcelVO {
 
     /**
-    * 订单名称
-    */
+     * 订单名称
+     */
     @ExcelProperty("订单名称")
     @ExcelI18n(i18nKey = "erp.order.field.name")
     @I18nNotEmpty(i18nKey = "erp.order.back.name.notEmpty", message = "订单名称不能为空")
     private String name;
 
     /**
-    * 订单号
-    */
+     * 订单号
+     */
     @ExcelProperty("订单号")
     @ExcelI18n(i18nKey = "erp.order.field.orderNo")
     @I18nNotEmpty(i18nKey = "erp.order.back.orderNo.notEmpty", message = "订单号不能为空")
     private String orderNo;
 
     /**
-    * 下单日期
-    */
+     * 下单日期
+     */
     @ExcelProperty(value = "下单日期")
     @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     @ExcelI18n(i18nKey = "erp.order.field.orderTime")
     @I18nNotNull(i18nKey = "erp.order.back.orderTime.notNull", message = "下单日期不能为空")
+    @ColumnWidth(30)
     private LocalDateTime orderTime;
 
     /**
-    * 订单来源
-    */
+     * 订单来源
+     */
     @ExcelProperty(value = "订单来源", converter = DictConvert.class)
     @ExcelColumnSelect(dictType = "erp_order_resource", i18n = true)
     @ExcelI18n(i18nKey = "erp.order.field.orderResource")
@@ -64,8 +68,8 @@ public class OrderExcelVO {
     private String orderResource;
 
     /**
-    * 订单状态
-    */
+     * 订单状态
+     */
     @ExcelProperty(value = "订单状态", converter = DictConvert.class)
     @ExcelColumnSelect(dictType = "erp_order_status", i18n = true)
     @ExcelI18n(i18nKey = "erp.order.field.orderStatus")
@@ -73,8 +77,8 @@ public class OrderExcelVO {
     private String orderStatus;
 
     /**
-    * 审核状态
-    */
+     * 审核状态
+     */
     @ExcelProperty(value = "审核状态", converter = DictConvert.class)
     @ExcelColumnSelect(dictType = "erp_order_audit_status", i18n = true)
     @ExcelI18n(i18nKey = "erp.order.field.auditStatus")
@@ -82,8 +86,8 @@ public class OrderExcelVO {
     private String auditStatus;
 
     /**
-    * 当前工序
-    */
+     * 当前工序
+     */
     @ExcelProperty(value = "当前工序", converter = DictConvert.class)
     @ExcelColumnSelect(dictType = "erp_order_current_process", i18n = true)
     @ExcelI18n(i18nKey = "erp.order.field.currentProcess")
@@ -102,7 +106,7 @@ public class OrderExcelVO {
      * 贷款状态
      */
     @ExcelProperty(value = "贷款状态", converter = DictConvert.class)
-    @ExcelColumnSelect(dictType = "erp_postage_status", i18n = true)
+    @ExcelColumnSelect(dictType = "erp_loan_status", i18n = true)
     @ExcelI18n(i18nKey = "erp.order.field.loanStatus")
     @I18nNotEmpty(i18nKey = "erp.order.back.loanStatus.notEmpty", message = "贷款状态不能为空")
     private String loanStatus;
@@ -119,7 +123,7 @@ public class OrderExcelVO {
      * 邮费状态
      */
     @ExcelProperty(value = "邮费状态", converter = DictConvert.class)
-    @ExcelColumnSelect(dictType = "erp_loan_status", i18n = true)
+    @ExcelColumnSelect(dictType = "erp_postage_status", i18n = true)
     @ExcelI18n(i18nKey = "erp.order.field.postageStatus")
     @I18nNotEmpty(i18nKey = "erp.order.back.postageStatus.notEmpty", message = "邮费状态不能为空")
     private String postageStatus;
@@ -127,34 +131,37 @@ public class OrderExcelVO {
     /**
      * 打印图片
      */
-    @ExcelProperty("打印图片")
+    @ExcelProperty(value = "打印图片", converter = ImagesConvert.class)
+    @ColumnWidth(10)
     @ExcelI18n(i18nKey = "erp.order.field.printImage")
     private String printImage;
 
     /**
-    * 客户
-    */
+     * 客户
+     */
     @ExcelProperty("客户")
     @ExcelI18n(i18nKey = "erp.order.field.customer")
     private String customer;
 
     /**
-    * 图片
-    */
-    @ExcelProperty("图片")
+     * 图片
+     */
+    @ExcelProperty(value = "图片", converter = ImagesConvert.class)
+    @ColumnWidth(30)
     @ExcelI18n(i18nKey = "erp.order.field.orderImage")
     private String orderImage;
 
     /**
-    * 二维码
-    */
-    @ExcelProperty("二维码")
+     * 二维码
+     */
+    @ExcelProperty(value = "二维码", converter = ImagesConvert.class)
+    @ColumnWidth(20)
     @ExcelI18n(i18nKey = "erp.order.field.qrCode")
     private String qrCode;
 
     /**
-    * 规格
-    */
+     * 规格
+     */
     @ExcelProperty(value = "规格", converter = DictConvert.class)
     @ExcelColumnSelect(dictType = "erp_specification", i18n = true)
     @ExcelI18n(i18nKey = "erp.order.field.specification")
@@ -162,16 +169,16 @@ public class OrderExcelVO {
     private String specification;
 
     /**
-    * 版型
-    */
+     * 版型
+     */
     @ExcelProperty(value = "版型", converter = DictConvert.class)
     @ExcelColumnSelect(dictType = "erp_pattern", i18n = true)
     @ExcelI18n(i18nKey = "erp.order.field.pattern")
     private String pattern;
 
     /**
-    * 布料
-    */
+     * 布料
+     */
     @ExcelProperty(value = "布料", converter = DictConvert.class)
     @ExcelColumnSelect(dictType = "erp_fabric", i18n = true)
     @ExcelI18n(i18nKey = "erp.order.field.fabric")
@@ -179,16 +186,16 @@ public class OrderExcelVO {
     private String fabric;
 
     /**
-    * 数量
-    */
+     * 数量
+     */
     @ExcelProperty("数量")
     @ExcelI18n(i18nKey = "erp.order.field.number")
     @I18nNotNull(i18nKey = "erp.order.back.number.notNull", message = "数量不能为空")
     private Integer number;
 
     /**
-    * 提货方式
-    */
+     * 提货方式
+     */
     @ExcelProperty(value = "提货方式", converter = DictConvert.class)
     @ExcelColumnSelect(dictType = "erp_order_pickup_method", i18n = true)
     @ExcelI18n(i18nKey = "erp.order.field.pickupMethod")
@@ -196,15 +203,15 @@ public class OrderExcelVO {
     private String pickupMethod;
 
     /**
-    * 发货地址
-    */
+     * 发货地址
+     */
     @ExcelProperty("发货地址")
     @ExcelI18n(i18nKey = "erp.order.field.shippingAddress")
     private String shippingAddress;
 
     /**
-    * 预计发货时间
-    */
+     * 预计发货时间
+     */
     @ExcelProperty(value = "预计发货时间")
     @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     @ExcelI18n(i18nKey = "erp.order.field.exceptShippingTime")
@@ -212,23 +219,23 @@ public class OrderExcelVO {
     private LocalDateTime exceptShippingTime;
 
     /**
-    * 发货订单
-    */
+     * 发货订单
+     */
     @ExcelProperty("发货订单")
     @ExcelI18n(i18nKey = "erp.order.field.shippingNo")
     private String shippingNo;
 
     /**
-    * 发货时间
-    */
+     * 发货时间
+     */
     @ExcelProperty(value = "发货时间")
     @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     @ExcelI18n(i18nKey = "erp.order.field.shippingTime")
     private LocalDateTime shippingTime;
 
     /**
-    * 打印状态
-    */
+     * 打印状态
+     */
     @ExcelProperty(value = "打印状态", converter = DictConvert.class)
     @ExcelColumnSelect(dictType = "erp_order_print_status", i18n = true)
     @ExcelI18n(i18nKey = "erp.order.field.printStatus")
@@ -236,15 +243,15 @@ public class OrderExcelVO {
     private String printStatus;
 
     /**
-    * 补水
-    */
+     * 补水
+     */
     @ExcelProperty("补水")
     @ExcelI18n(i18nKey = "erp.order.field.hydration")
     private String hydration;
 
     /**
-    * 备注
-    */
+     * 备注
+     */
     @ExcelProperty("备注")
     @ExcelI18n(i18nKey = "erp.order.field.remark")
     private String remark;

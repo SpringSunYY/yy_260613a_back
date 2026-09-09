@@ -23,6 +23,55 @@
 
 ## 🧑‍💻开发必读
 
+### Excel 导出文件支持
+
+项目支持将文件（图片、视频、压缩包等）直接写入 Excel 单元格。
+
+#### 1. 文件转换器 (FileConvert)
+
+**功能特性：**
+- 支持多种数据类型：`byte[]`、`List<byte[]>`、`String`（文件路径）、`File`、`InputStream`
+- 自动识别图片类型（JPEG、PNG、GIF 等）
+- **防OOM策略**：单文件超过 50MB 时自动跳过写入
+
+**使用示例：**
+
+```java
+// 单个文件（byte数组）
+@ExcelProperty(value = "附件", converter = FileConvert.class)
+private byte[] fileContent;
+
+// 多个文件（多图模式）
+@ExcelProperty(value = "图片集", converter = FileConvert.class)
+private List<byte[]> fileContents;
+
+// 文件路径（支持 || 分隔多路径）
+@ExcelProperty(value = "文件", converter = FileConvert.class)
+private String filePath;
+```
+
+#### 2. 文件单元格写入处理器 (FileCellWriteHandler)
+
+配合转换器使用，用于控制图片在单元格中的显示大小和位置。
+
+**使用示例：**
+
+```java
+EasyExcel.write(outputStream, UserExportVO.class)
+    .registerWriteHandler(new FileCellWriteHandler())
+    .sheet("用户数据")
+    .doWrite(list);
+```
+
+#### 3. 注意事项
+
+- 文件路径支持三种来源：
+  1. 远程存储（通过 `FileCommonApi` 获取）
+  2. 本地文件（通过文件路径直接读取）
+  3. HTTP URL（以 `http://` 或 `https://` 开头）
+- 多路径用 `||` 分隔（与 `FileCommonApi.getFileContents` 保持一致）
+- 建议配合 `FileCellWriteHandler` 一起使用，保证图片显示效果
+
 - 如果这个项目让你有所收获，记得 Star 关注哦，这对我们是非常不错的鼓励与支持。本项目基于芋道开发。
 
 > 因为国际化有几万条，数据量大，默认初始化SQL不提供国际化信息，可以联系我们给您【见下面联系方式】（推荐），或者可以自行运行代码国际化Python脚本，运行对应SQL，同时，因为根据芋道二次开发，原来没有国际化，国际化信息生成是使用AI生成的对应国际化Key，已经创建对应的国际化规范文档，可以使用规范文档生成，如果您觉得我们生成的不够好，可以自己生成，生成之后一定要在【国际化-国家地区】刷新国际化缓存，因为您直接执行SQL的话和系统无关，刷新不了缓存的。

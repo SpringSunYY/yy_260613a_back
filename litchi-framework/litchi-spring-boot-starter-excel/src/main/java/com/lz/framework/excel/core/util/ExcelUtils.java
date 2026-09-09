@@ -7,6 +7,7 @@ import com.lz.framework.common.util.http.HttpUtils;
 import com.lz.framework.dict.core.DictFrameworkUtils;
 import com.lz.framework.excel.core.annotations.ExcelDirection;
 import com.lz.framework.excel.core.convert.DictConvert;
+import com.lz.framework.excel.core.handler.ImagesSheetWriteHandler;
 import com.lz.framework.excel.core.handler.I18nHeadWriteHandler;
 import com.lz.framework.excel.core.handler.SelectSheetWriteHandler;
 import jakarta.servlet.http.HttpServletResponse;
@@ -59,9 +60,11 @@ public class ExcelUtils {
         try {
             var builder = EasyExcel.write(response.getOutputStream(), head)
                     .autoCloseStream(false)
+                    .inMemory(true)
                     .registerWriteHandler(new LongestMatchColumnWidthStyleStrategy())
                     .registerWriteHandler(new SelectSheetWriteHandler(head, direction))
                     .registerWriteHandler(new I18nHeadWriteHandler(head, direction))
+                    .registerWriteHandler(new ImagesSheetWriteHandler())
                     .registerConverter(new DictConvert())
                     .registerConverter(new LongStringConverter());
 
@@ -89,7 +92,7 @@ public class ExcelUtils {
      *
      * @param file      Excel 文件
      * @param head      头类
-     * @param direction 方向：IMPORT=导入（排除 EXPORT 字段），EXPORT=导出（排除 IMPORT 字段）
+     * @param direction 方向：IMPORT=导入（排除 IMPORT 字段），EXPORT=导出（排除 EXPORT 字段）
      */
     public static <T> List<T> read(MultipartFile file, Class<T> head, ExcelDirection direction) throws IOException {
         try {

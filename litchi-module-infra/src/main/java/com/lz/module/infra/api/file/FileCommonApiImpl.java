@@ -57,6 +57,20 @@ public class FileCommonApiImpl implements FileCommonApi {
     }
 
     @Override
+    public List<String> getFilePaths(String path) {
+        if (StrUtil.isEmpty(path)) {
+            return new ArrayList<>();
+        }
+        String[] paths = path.split(FILE_PATH_SEPARATOR);
+        List<String> resultPaths = new ArrayList<>();
+        //拿到每个的路径
+        for (String p : paths) {
+            resultPaths.add(this.getFilePath(p));
+        }
+        return resultPaths;
+    }
+
+    @Override
     public List<byte[]> getFileContents(String path) {
         if (StrUtil.isEmpty(path)) {
             return new ArrayList<>();

@@ -10,7 +10,7 @@ public class FileConstants {
     /**
      * 文件路径分隔符
      */
-    public static final String FILE_PATH_SEPARATOR = "||";
+    public static final String FILE_PATH_SEPARATOR =  "\\|\\|";
 
     /**
      * 文件类型分隔符
