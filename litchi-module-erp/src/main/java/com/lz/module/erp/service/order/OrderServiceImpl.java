@@ -490,7 +490,14 @@ public class OrderServiceImpl implements OrderService {
         List<DictDataRespDTO> dataList = dictDataCommonApi.getDictDataList(ErpDictTypeConstants.ERP_SET_SIZE);
         Map<String, Integer> sortMap = dataList.stream()
                 .collect(Collectors.toMap(DictDataRespDTO::getValue, DictDataRespDTO::getSort));
-        orderDetailDOS.sort(Comparator.comparingInt(o -> sortMap.getOrDefault(o.getSetSize(), Integer.MAX_VALUE)));
+        // 记录原始顺序，字典排序相同时按返回的 detailDOs 顺序排序
+        Map<OrderDetailDO, Integer> indexMap = new IdentityHashMap<>();
+        for (int i = 0; i < orderDetailDOS.size(); i++) {
+            indexMap.put(orderDetailDOS.get(i), i);
+        }
+        orderDetailDOS.sort(Comparator
+                .comparingInt((OrderDetailDO o) -> sortMap.getOrDefault(o.getSetSize(), Integer.MAX_VALUE))
+                .thenComparingInt(o -> indexMap.getOrDefault(o, Integer.MAX_VALUE)));
         return orderDetailDOS;
     }
 

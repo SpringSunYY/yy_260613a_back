@@ -1,5 +1,6 @@
 package com.lz.module.erp.dal.mysql.order;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.lz.framework.mybatis.core.mapper.BaseMapperX;
 import com.lz.module.erp.dal.dataobject.order.OrderDetailDO;
 import org.apache.ibatis.annotations.Mapper;
@@ -15,7 +16,10 @@ import java.util.List;
 public interface OrderDetailMapper extends BaseMapperX<OrderDetailDO> {
 
     default List<OrderDetailDO> selectListByOrderNo(String orderNo) {
-        return selectList(OrderDetailDO::getOrderNo, orderNo);
+        LambdaQueryWrapper<OrderDetailDO> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(OrderDetailDO::getOrderNo, orderNo);
+        queryWrapper.orderByAsc(OrderDetailDO::getSetNumber);
+        return this.selectList(queryWrapper);
     }
 
     default int deleteByOrderNo(String orderNo) {
