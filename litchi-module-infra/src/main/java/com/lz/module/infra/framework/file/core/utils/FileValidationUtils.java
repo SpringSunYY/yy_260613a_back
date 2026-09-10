@@ -2,13 +2,12 @@ package com.lz.module.infra.framework.file.core.utils;
 
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.StrUtil;
-import com.lz.module.infra.constants.FileConstants;
+import com.lz.framework.common.enums.FileConstants;
 import com.lz.module.infra.dal.dataobject.file.FileConfigDO;
 import org.springframework.stereotype.Component;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * 文件校验工具类

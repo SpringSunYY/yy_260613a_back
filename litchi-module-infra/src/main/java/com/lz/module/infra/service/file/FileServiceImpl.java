@@ -10,7 +10,7 @@ import com.lz.framework.common.pojo.PageResult;
 import com.lz.framework.common.util.object.BeanUtils;
 import com.lz.framework.mybatis.core.query.LambdaQueryWrapperX;
 import com.lz.framework.tenant.core.util.TenantUtils;
-import com.lz.module.infra.constants.FileConstants;
+import com.lz.framework.common.enums.FileConstants;
 import com.lz.module.infra.controller.admin.file.vo.file.*;
 import com.lz.module.infra.dal.dataobject.file.FileConfigDO;
 import com.lz.module.infra.dal.dataobject.file.FileDO;

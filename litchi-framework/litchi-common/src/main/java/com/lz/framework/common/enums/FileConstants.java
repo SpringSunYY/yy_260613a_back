@@ -1,4 +1,4 @@
-package com.lz.module.infra.constants;
+package com.lz.framework.common.enums;
 
 /**
  * 文件相关常量
@@ -10,7 +10,12 @@ public class FileConstants {
     /**
      * 文件路径分隔符
      */
-    public static final String FILE_PATH_SEPARATOR =  "\\|\\|";
+    public static final String FILE_PATH_SEPARATOR = "\\|\\|";
+
+    /**
+     * 换行符
+     */
+    public static final String EXCEL_LINE_SEPARATOR = "\\n";
 
     /**
      * 文件类型分隔符
