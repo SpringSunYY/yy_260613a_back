@@ -14,7 +14,9 @@ import com.alibaba.excel.write.handler.context.CellWriteHandlerContext;
 import com.alibaba.excel.write.handler.context.RowWriteHandlerContext;
 import com.alibaba.excel.write.handler.context.WorkbookWriteHandlerContext;
 import com.alibaba.excel.write.metadata.holder.WriteSheetHolder;
+import com.lz.framework.common.enums.FileConstants;
 import com.lz.framework.excel.core.annotations.ExcelDirection;
+import com.lz.framework.excel.core.annotations.ExcelImageProperty;
 import com.lz.framework.excel.core.annotations.ExcelType;
 import com.lz.framework.excel.core.convert.ImagesConvert;
 import com.lz.framework.excel.core.strategy.PoiTempFileStrategy;
@@ -76,13 +78,13 @@ public class ImagesSheetWriteHandler implements CellWriteHandler, RowWriteHandle
      * <p>图组左右两侧各留 1 个字符宽度的留白（避免贴边）。
      * <p>最终像素值 = chars × {@link org.apache.poi.util.Units#DEFAULT_CHARACTER_WIDTH}。
      */
-    private static final float IMAGE_HORIZONTAL_MARGIN_CHARS = 1f;
+    private static final float IMAGE_HORIZONTAL_MARGIN_CHARS = 2f;
 
     /**
      * 图片垂直边距（单位：字符宽）。
      * <p>图组上下两侧各留 1 个字符宽度的留白。
      */
-    private static final float IMAGE_VERTICAL_MARGIN_CHARS = 1f;
+    private static final float IMAGE_VERTICAL_MARGIN_CHARS = 3f;
 
     /**
      * 多图之间的水平间距（单位：字符宽）。
@@ -190,6 +192,13 @@ public class ImagesSheetWriteHandler implements CellWriteHandler, RowWriteHandle
      */
     private final Map<Integer, Integer> imageColumnWidthMap = new HashMap<>();
 
+    /**
+     * 构造时一次性扫好的"列索引 → {@link ExcelImageProperty} 注解"映射。
+     * <p>用于 afterCellDispose 阶段 O(1) 拿到当前列的注解，避免运行时反射。
+     * <p>值可能是 {@code null}（表示该字段无注解），调用方需用 containsKey 判断。
+     */
+    private final Map<Integer, ExcelImageProperty> imageColumnAnnotationMap = new HashMap<>();
+
     // ====================================================================================
     // 构造
     // ====================================================================================
@@ -214,6 +223,7 @@ public class ImagesSheetWriteHandler implements CellWriteHandler, RowWriteHandle
         ScanResult scanResult = scanHead(head, direction);
         this.imageColumnIndexes = scanResult.imageColumnIndexes;
         this.imageColumnWidthMap.putAll(scanResult.imageColumnWidths);
+        this.imageColumnAnnotationMap.putAll(scanResult.imageColumnAnnotations);
     }
 
     /**
@@ -280,6 +290,8 @@ public class ImagesSheetWriteHandler implements CellWriteHandler, RowWriteHandle
                 // 一次性扫列宽（避免运行时反射）
                 Integer width = readColumnWidthFromField(field);
                 result.imageColumnWidths.put(targetCol, width);
+                // 一次性扫 @ExcelImageProperty 注解（运行时不反射）
+                result.imageColumnAnnotations.put(targetCol, field.getAnnotation(ExcelImageProperty.class));
             }
             colIndex++;
         }
@@ -301,10 +313,69 @@ public class ImagesSheetWriteHandler implements CellWriteHandler, RowWriteHandle
                 return columnWidthAnn.value() * 256;
             }
         } catch (Exception ex) {
-            log.debug("[ImagesSheetWriteHandler] 读取 @ColumnWidth 失败: {}", ex.getMessage());
+            log.warn("[ImagesSheetWriteHandler] 读取 @ColumnWidth 失败: {}", ex.getMessage());
         }
         // 没标 @ColumnWidth 或读失败：用默认列宽
         return FALLBACK_BASE_COLUMN_WIDTH_CHARS * 256;
+    }
+
+    /**
+     * 读取当前列对应的 {@link ExcelImageProperty} 注解（构造时一次性扫好，运行时 O(1) 直接 map.get）。
+     *
+     * @param columnIndex 列索引
+     * @return 注解实例；未标注解 → {@code null}；非图片列（无参构造） → 也返回 {@code null}
+     */
+    private ExcelImageProperty resolveColumnAnnotation(int columnIndex) {
+        return imageColumnAnnotationMap.get(columnIndex);
+    }
+
+    /**
+     * 计算有效 maxBytes 覆盖值：注解设置 > 全局默认。
+     *
+     * @param ann 字段注解（可能为 null）
+     * @return 覆盖的字节数；{@code null} → 让 {@link FileProcessUtils} 用全局默认
+     */
+    private static Long effectiveMaxBytesOverride(ExcelImageProperty ann) {
+        if (ann != null && ann.maxFileSizeMB() > 0) {
+            return (long) ann.maxFileSizeMB() * 1024 * 1024;
+        }
+        return null;
+    }
+
+    // =====================================================================
+    // @ExcelImageProperty 注解读取器（NaN → 全局默认，否则用注解值）
+    // =====================================================================
+
+    /** 水平边距：单位 字符宽 */
+    private static float readHorizontalMarginChars(ExcelImageProperty ann) {
+        if (ann != null && !Float.isNaN(ann.horizontalMarginChars())) {
+            return ann.horizontalMarginChars();
+        }
+        return IMAGE_HORIZONTAL_MARGIN_CHARS;
+    }
+
+    /** 垂直边距：单位 字符宽 */
+    private static float readVerticalMarginChars(ExcelImageProperty ann) {
+        if (ann != null && !Float.isNaN(ann.verticalMarginChars())) {
+            return ann.verticalMarginChars();
+        }
+        return IMAGE_VERTICAL_MARGIN_CHARS;
+    }
+
+    /** 多图间距：单位 字符宽 */
+    private static float readImageGapChars(ExcelImageProperty ann) {
+        if (ann != null && !Float.isNaN(ann.imageGapChars())) {
+            return ann.imageGapChars();
+        }
+        return IMAGE_GAP_CHARS;
+    }
+
+    /** 单图渲染高度上限倍数（相对列宽字符数 × 字符宽） */
+    private static double readMaxRenderHeightMultiple(ExcelImageProperty ann) {
+        if (ann != null && !Double.isNaN(ann.maxRenderHeightMultiple())) {
+            return ann.maxRenderHeightMultiple();
+        }
+        return MAX_IMAGE_RENDER_HEIGHT_MULTIPLE;
     }
 
     /**
@@ -313,6 +384,10 @@ public class ImagesSheetWriteHandler implements CellWriteHandler, RowWriteHandle
     private static final class ScanResult {
         final Set<Integer> imageColumnIndexes = new HashSet<>();
         final Map<Integer, Integer> imageColumnWidths = new HashMap<>();
+        /**
+         * 列索引 → 该列字段的 {@link com.lz.framework.excel.core.annotations.ExcelImageProperty} 注解
+         */
+        final Map<Integer, ExcelImageProperty> imageColumnAnnotations = new HashMap<>();
     }
 
     // ====================================================================================
@@ -357,9 +432,11 @@ public class ImagesSheetWriteHandler implements CellWriteHandler, RowWriteHandle
         }
 
         try {
-            // 列宽缓存（关键优化：构造时已一次性扫好到 imageColumnWidthMap，运行时 O(1) 取）
-            // 这里仍维护 perSheetOriginalColumnWidthMap 是为了兼容多 sheet 场景
-            //   - 每个 sheet 第一次出现时一次性把 imageColumnWidthMap 拷贝过去
+            // 【关键修复】之前版本删掉了这段列宽填充，导致 perSheetOriginalColumnWidthMap 永远为空！
+            // 每个 sheet 第一次出现时一次性把 imageColumnWidthMap（构造时扫好的）拷贝过去。
+            // 之后 afterRowDispose 步骤 1 用 originalColumnWidthPerColumnMap 算单图目标宽时，
+            // 拿到的就是 @ColumnWidth 的真实列宽（不是兜底 20 chars）。
+            // 否则所有列都会按 20 chars 兜底计算 —— 这是"宽高严重失衡"的根本原因！
             Map<Integer, Integer> originalColumnWidthPerColumnMap =
                     perSheetOriginalColumnWidthMap.computeIfAbsent(sheetIndex, k -> new HashMap<>(imageColumnWidthMap));
 
@@ -370,6 +447,13 @@ public class ImagesSheetWriteHandler implements CellWriteHandler, RowWriteHandle
 
             // 既没路径也没图，不是图片列 → 直接返回
             if (pathString == null && (inCellImages == null || inCellImages.isEmpty())) {
+                // 【关键】Converter 在 List<File>/byte[]/InputStream 超限时返回 STRING("")。
+                // 这里把 cellData.setType(EMPTY) —— LongestMatchColumnWidthStyleStrategy 看到 EMPTY 返回 -1，
+                // 避免它用空字符串长度把列宽设为 0，破坏 @ColumnWidth。
+                // （Converter 在 overLimit 路径已经丢掉了所有图，不需要 Handler 二次处理）
+                cellData.setType(CellDataTypeEnum.EMPTY);
+                cellData.setStringValue("");
+                cellData.setImageDataList(new ArrayList<>());
                 return;
             }
 
@@ -379,9 +463,9 @@ public class ImagesSheetWriteHandler implements CellWriteHandler, RowWriteHandle
                 // === STRING 路径场景：仅缓存路径字符串 ===
                 // 真正的 byte[] 读取放到 afterCellDispose 中，最大化缩短 byte[] 驻留时间
                 pendingRowPathMap.put(rowKey, pathString);
-                // 清空 cellData 避免 EasyExcel 默认行为：
-                //   1) LongestMatchColumnWidthStyleStrategy 看到 type=EMPTY 会跳过（dataLength 返回 -1）
-                //   2) EasyExcel 默认走 image 绘制通道时因 EMPTY 跳过，避免和我们绘制重复
+                // 【关键】把 cellData.setType(EMPTY) —— LongestMatchColumnWidthStyleStrategy 看到 type=EMPTY 返回 -1 跳过列宽自适应，
+                //         否则它会用 path 长度撑大列宽，破坏 @ColumnWidth 注解。
+                //         stringValue 保留，Handler 后续能从 cellData.stringValue 拿到 path。
                 cellData.setType(CellDataTypeEnum.EMPTY);
                 cellData.setStringValue("");
                 cellData.setImageDataList(new ArrayList<>());
@@ -394,17 +478,30 @@ public class ImagesSheetWriteHandler implements CellWriteHandler, RowWriteHandle
                 // =====================================================================
                 // 【关键】把 byte[] 转移到 Handler 自己的缓存 + 清空 cellData.imageDataList，
                 //         防止 EasyExcel/POI 默认 channel 把图片自动画一遍，导致和 Handler 重复。
+                // 【去重】同一 byte[] 引用可能因 Converter 对 List 元素的误处理出现多次，
+                //         必须去重避免同一张图被重复 addPicture。
+                //
+                // 【修复】此处之前漏了「setType(EMPTY) + 清空 imageDataList」——
+                //          EasyExcel 内置的 AddPictureDataHandler 会基于 cellData.imageDataList
+                //          用默认规则（原图尺寸、col1=col2, dx1=0, dy1=0）自动绘制一遍，
+                //          导致和 Handler 自己的精确绘制重叠 = 图片数量翻倍。
                 // =====================================================================
+                Set<byte[]> seen = new HashSet<>();
                 List<byte[]> imageBytesList = new ArrayList<>(inCellImages.size());
                 for (ImageData img : inCellImages) {
                     if (img != null && img.getImage() != null && img.getImage().length > 0) {
-                        imageBytesList.add(img.getImage());
+                        byte[] imgBytes = img.getImage();
+                        if (!seen.contains(imgBytes)) {
+                            seen.add(imgBytes);
+                            imageBytesList.add(imgBytes);
+                        }
                     }
                 }
                 if (!imageBytesList.isEmpty()) {
                     pendingRowImageBytesMap.put(rowKey, imageBytesList);
                 }
-                // 清空 cellData：setType(EMPTY) + 清空 imageDataList，让 EasyExcel 跳过默认绘制
+                // 关键修复：清空 cellData 上的图片数据 + 设为 EMPTY，
+                //   防止 EasyExcel/POI 内置通道自动绘制一次（导致翻倍）。
                 cellData.setType(CellDataTypeEnum.EMPTY);
                 cellData.setStringValue("");
                 cellData.setImageDataList(new ArrayList<>());
@@ -420,17 +517,37 @@ public class ImagesSheetWriteHandler implements CellWriteHandler, RowWriteHandle
 
     /**
      * 从 cellData 提取 STRING 路径。
-     * <p>当前实现：仅取 {@code cellData.getType() == STRING} 时的 stringValue。
-     * 后续如果 Converter 改用其他字段（如 listValue），在这里扩展即可。
+     * <p>当前实现：直接读 {@code cellData.getStringValue()}，<b>不依赖 type</b>。
+     * 这样 Converter 可以设 {@code type=EMPTY}（让 {@code LongestMatchColumnWidthStyleStrategy} 跳过列宽自适应），
+     * 但 Handler 仍能从 {@code stringValue} 拿到原始路径。
+     * <p>同时检查 {@code pathString} 以 {@link FileConstants#FILE_PATH_SEPARATOR}（{@code ||}）开头，
+     * 避免普通字符串字段（如客户名）被误判成"图片路径"。
      */
     private String extractPathString(WriteCellData<?> cellData) {
-        // 仅识别 STRING 类型的 cellData（ImagesConvert 处理字符串路径时会 setType(STRING)）
-        // 其他类型（如 EMPTY、NUMBER 等）认为没有路径，返回 null
-        // 注：byte[] 已经在 cellData.imageDataList 中（Converter 提前加载场景），不通过 stringValue 传
-        if (cellData.getType() == CellDataTypeEnum.STRING) {
-            return cellData.getStringValue();
+        if (cellData == null) {
+            return null;
         }
-        return null;
+        String value = cellData.getStringValue();
+        if (value == null || value.isEmpty()) {
+            return null;
+        }
+        // 只识别包含 FILE_PATH_SEPARATOR（||）的路径字符串（多张图拼接的格式）
+        // 单个路径也能识别（Converter 返回 STRING 单路径时）
+        if (!value.contains(FileConstants.FILE_PATH_SEPARATOR) && !looksLikeFilePath(value)) {
+            return null;
+        }
+        return value;
+    }
+
+    /**
+     * 简单判断字符串是否像文件路径（包含盘符、http://、/、\\ 等）。
+     * <p>避免把客户名/订单号等普通字符串误判成图片路径。
+     */
+    private boolean looksLikeFilePath(String s) {
+        if (s == null || s.isEmpty()) return false;
+        return s.startsWith("http://") || s.startsWith("https://")
+                || s.startsWith("/") || s.matches("^[a-zA-Z]:[\\\\/].*")
+                || s.startsWith("file:") || s.startsWith("./") || s.startsWith("../");
     }
 
     // ====================================================================================
@@ -459,6 +576,7 @@ public class ImagesSheetWriteHandler implements CellWriteHandler, RowWriteHandle
         // 兜底：context 或 head 为空直接返回
         if (context == null || Boolean.TRUE.equals(context.getHead())) return;
 
+        long t0 = System.nanoTime();
         int rowIndex = context.getRowIndex();
         int columnIndex = context.getColumnIndex();
         // 取当前 sheet（WriteSheetHolder → Sheet）
@@ -466,7 +584,7 @@ public class ImagesSheetWriteHandler implements CellWriteHandler, RowWriteHandle
         // 兜底：sheet 为空直接返回
         if (sheet == null) return;
         // 取 row + cell：先取行，再取该行某列
-        org.apache.poi.ss.usermodel.Row row = sheet.getRow(rowIndex);
+        Row row = sheet.getRow(rowIndex);
         Cell cell = row != null ? row.getCell(columnIndex) : null;
         // 兜底：cell 为空（行不存在或该 cell 未创建）直接返回
         if (cell == null) return;
@@ -477,6 +595,9 @@ public class ImagesSheetWriteHandler implements CellWriteHandler, RowWriteHandle
         String pathString = pendingRowPathMap.get(rowKey);
         // pathString == null 说明这个 cell 不是图列（已被早 return）或已被处理过
         if (pathString == null) return;
+
+        // 读取当前列的 @ExcelImageProperty 注解（构造时一次性扫好到 imageColumnAnnotationMap，运行时 O(1) 取）
+        ExcelImageProperty columnAnnotation = resolveColumnAnnotation(columnIndex);
 
         WriteCellData<?> cellData = context.getFirstCellData();
         // 兜底：cellData 为空（EasyExcel 内部异常）时清掉路径缓存，避免悬挂引用
@@ -496,18 +617,30 @@ public class ImagesSheetWriteHandler implements CellWriteHandler, RowWriteHandle
             // 一行最多只持有 1 张图的 byte[]（约 1MB）→ 大幅降低峰值
             if (!pathString.isEmpty()) {
                 // === STRING 路径场景：流式拉图（每张图回调一次 addPicture）===
+                // 调用方可通过 @ExcelImageProperty(maxFileSizeMB = N) 覆盖默认上限
+                Long maxBytesOverride = effectiveMaxBytesOverride(columnAnnotation);
                 FileProcessUtils.StringPathResult result =
                         FileProcessUtils.processStringPathStream(pathString, rowKey,
-                                (idx, buf) -> addPictureAndRecord(workbook, pictureIdxList, sizes, buf));
+                                (idx, buf) -> addPictureAndRecord(workbook, pictureIdxList, sizes, buf),
+                                maxBytesOverride);
                 if (result.overLimit) {
-                    // 该 cell 单张文件超过 MAX_FILE_BYTES：不画图，把 fallbackPath 当文本写入
+                    // 该 cell 单 cell 总文件大小超过 MAX_FILE_BYTES：不画图，把 fallbackPath 当文本写入
                     cell.setCellValue(result.fallbackPath);
+                    // 【关键】同步把 cellData 改成 STRING，否则 EasyExcel 后续会用 cellData 覆盖 cell
+                    // cellData 已经 setType(EMPTY)，写完 cell 后 EasyExcel 会重新读 cellData → 把 STRING 覆盖成 EMPTY
+                    cellData.setType(CellDataTypeEnum.STRING);
+                    cellData.setStringValue(result.fallbackPath);
+                    cellData.setImageDataList(new ArrayList<>());
                     pendingRowPathMap.remove(rowKey);
                     return;
                 }
                 if (pictureIdxList.isEmpty()) {
                     // 所有图都拉失败（文件不存在 / 权限等）：把原始路径当文本写入
                     cell.setCellValue(pathString);
+                    // 【关键】同步把 cellData 改成 STRING
+                    cellData.setType(CellDataTypeEnum.STRING);
+                    cellData.setStringValue(pathString);
+                    cellData.setImageDataList(new ArrayList<>());
                     pendingRowPathMap.remove(rowKey);
                     return;
                 }
@@ -533,13 +666,17 @@ public class ImagesSheetWriteHandler implements CellWriteHandler, RowWriteHandle
             }
 
             // =====================================================================
-            // 第二步：清 cellData 上的 byte[] 引用
+            // 第二步：清 cellData 上的 byte[] 引用 + 同步 cellData 状态为 STRING(空)
             // =====================================================================
-            // cellData 是 EasyExcel 内部对象，可能在 row 完成前一直被引用
-            // 主动 setType(EMPTY) + 清空 imageDataList，确保 cellData 不再持有 byte[]
-            cellData.setType(CellDataTypeEnum.EMPTY);
-            cellData.setStringValue("");
+            // cellData 是 EasyExcel 内部对象，可能在 row 完成前一直被引用。
+            // 主动清空 imageDataList 确保 cellData 不再持有 byte[]。
+            // 【不要 setType(EMPTY)】—— 保持 STRING 类型，让 LongestMatchColumnWidthStyleStrategy 能正确计算列宽。
             cellData.setImageDataList(new ArrayList<>());
+            if (cellData.getType() == CellDataTypeEnum.EMPTY) {
+                // 如果之前是 EMPTY（Converter 走 byte[]/File/InputStream 分支时设的），改为 STRING
+                cellData.setType(CellDataTypeEnum.STRING);
+                cellData.setStringValue("");
+            }
 
             // =====================================================================
             // 第三步：缓存 pictureIdx + sizes（行级缓存，行结束统一清）
@@ -627,7 +764,7 @@ public class ImagesSheetWriteHandler implements CellWriteHandler, RowWriteHandle
                 }
             }
         } catch (Exception ignored) {
-            log.debug("[ImagesSheetWriteHandler] 无法解析图片尺寸，使用默认 200x200");
+            log.warn("[ImagesSheetWriteHandler] 无法解析图片尺寸，使用默认 200x200");
         }
         return new int[]{DEFAULT_IMAGE_WIDTH_PIXELS, DEFAULT_IMAGE_HEIGHT_PIXELS};
     }
@@ -668,6 +805,7 @@ public class ImagesSheetWriteHandler implements CellWriteHandler, RowWriteHandle
         // 但首行 Head 可能被撑大（按表头名长度），这里仅在每个 sheet 首次出现时一次性还原成 @ColumnWidth
         // processedSheetIndexes.add() 返回 true = 该 sheet 是首次出现
         if (originalColumnWidthPerColumnMap != null && processedSheetIndexes.add(sheetIndex)) {
+            long t = System.nanoTime();
             Sheet sheet = row.getSheet();
             for (Map.Entry<Integer, Integer> cwEntry : originalColumnWidthPerColumnMap.entrySet()) {
                 int columnIndex = cwEntry.getKey();
@@ -694,15 +832,17 @@ public class ImagesSheetWriteHandler implements CellWriteHandler, RowWriteHandle
         }
 
         // =====================================================================
-        // 步骤 1：算整行最大渲染高 + 每 cell 渲染宽高（用于 dy1 居中）
+        // 步骤 1：算每 cell 的渲染宽高（每个 cell 独立按自己的列宽 + 注解算，不再统一）
         // =====================================================================
-        // rowMaxRenderHPx：本行所有 cell 中最高的渲染高，用于确定行高
+        // rowMaxRenderHPx：本行所有 cell 中最高的渲染高 + 自身的 verticalMargin
         // cellRenderWidthsPxMap/HeightsPxMap：每 cell 的渲染宽高，用于画图时的 anchor
-        // cellColIndexMap：rowKey → 列索引（解析 rowKey 一次性算完，避免反复 parse）
+        // cellColIndexMap：rowKey → 列索引
         float rowMaxRenderHPx = 0f;
         Map<String, float[]> cellRenderWidthsPxMap = new HashMap<>();
         Map<String, float[]> cellRenderHeightsPxMap = new HashMap<>();
         Map<String, Integer> cellColIndexMap = new HashMap<>();
+        // 每 cell 的 verticalMargin（= 注解值或全局默认），用于行高计算
+        Map<String, Float> cellVerticalMarginPxMap = new HashMap<>();
 
         for (String rowKey : rowCellKeys) {
             // rowKey = "rowIdx_colIdx"，下划线分割
@@ -720,17 +860,30 @@ public class ImagesSheetWriteHandler implements CellWriteHandler, RowWriteHandle
             int baseWidthUnits2 = (base2 != null) ? base2 : FALLBACK_BASE_COLUMN_WIDTH_CHARS * 256;
             int baseColWidthChars = baseWidthUnits2 / 256;
             float baseColWidthPx = baseWidthUnits2 / 256f * Units.DEFAULT_CHARACTER_WIDTH;
-            // 单图渲染高度上限 = 列宽字符数 × 倍数（防止细长图如条形码把行高撑高）
-            float maxRenderHPx = (float) (baseColWidthChars
-                    * MAX_IMAGE_RENDER_HEIGHT_MULTIPLE * Units.DEFAULT_CHARACTER_WIDTH);
 
-            float horizontalMarginPx = IMAGE_HORIZONTAL_MARGIN_CHARS * Units.DEFAULT_CHARACTER_WIDTH;
-            float gapPx = IMAGE_GAP_CHARS * Units.DEFAULT_CHARACTER_WIDTH;
+            // @ExcelImageProperty 注解参数（之前完全忽略注解！）
+            // 注解未设（NaN）→ 用全局默认；注解设了 → 用注解值。
+            ExcelImageProperty ann = resolveColumnAnnotation(columnIndex);
+
+            float horizontalMarginChars = readHorizontalMarginChars(ann);
+            float verticalMarginChars = readVerticalMarginChars(ann);
+            float imageGapChars = readImageGapChars(ann);
+            double maxRenderHeightMultiple = readMaxRenderHeightMultiple(ann);
+
+            float horizontalMarginPx = horizontalMarginChars * Units.DEFAULT_CHARACTER_WIDTH;
+            float verticalMarginPx = verticalMarginChars * Units.DEFAULT_CHARACTER_WIDTH;
+            float gapPx = imageGapChars * Units.DEFAULT_CHARACTER_WIDTH;
+
             // 内容区 = 列宽 - 左右 margin
             float baseContentAreaPx = baseColWidthPx - 2f * horizontalMarginPx;
+            if (baseContentAreaPx < 1f) baseContentAreaPx = 1f;
             // 单图目标宽 = (内容区 - (n-1) × gap) / n
             float singleSlotTargetPx = (baseContentAreaPx - (n - 1) * gapPx) / Math.max(n, 1);
             if (singleSlotTargetPx < 1f) singleSlotTargetPx = 1f;
+
+            // 单图渲染高度上限 = 列宽字符数 × 注解倍数 × 字符宽
+            float maxRenderHPx = (float) (baseColWidthChars
+                    * maxRenderHeightMultiple * Units.DEFAULT_CHARACTER_WIDTH);
 
             float[] renderWidthsPx = new float[n];
             float[] renderHeightsPx = new float[n];
@@ -742,10 +895,18 @@ public class ImagesSheetWriteHandler implements CellWriteHandler, RowWriteHandle
                     origW = sizes.get(i)[0];
                     origH = sizes.get(i)[1];
                 }
-                // 渲染宽 = clamp(原图宽, 最小 1px, 单图目标宽)  ← 不放大原图
-                float renderW = Math.clamp((float) origW, 1f, singleSlotTargetPx);
+                if (origW <= 0) origW = 1;
+                if (origH <= 0) origH = 1;
+                float ratio = (float) origH / origW;
+                // 单图目标渲染宽：如果原图比目标位还小，按原图宽渲染（不放大）；
+                // 如果原图比目标位大，等比缩小到刚好填满 singleSlotTargetPx。
+                float renderW;
+                if ((float) origW <= singleSlotTargetPx) {
+                    renderW = (float) origW; // 不放大
+                } else {
+                    renderW = singleSlotTargetPx;
+                }
                 // 按原图比例算渲染高
-                float ratio = (origW > 0) ? ((float) origH / origW) : 1f;
                 float renderH = renderW * ratio;
                 // 超高：等比缩小
                 if (renderH > maxRenderHPx) {
@@ -755,33 +916,31 @@ public class ImagesSheetWriteHandler implements CellWriteHandler, RowWriteHandle
                 }
                 renderWidthsPx[i] = renderW;
                 renderHeightsPx[i] = renderH;
-                // 取本 cell 最高图
+                // 取本 cell 最高图（含 verticalMargin 后用于行高）
                 if (renderH > cellMaxH) cellMaxH = renderH;
             }
             cellRenderWidthsPxMap.put(rowKey, renderWidthsPx);
             cellRenderHeightsPxMap.put(rowKey, renderHeightsPx);
-            // 取本行最高图（用于整行行高）
-            if (cellMaxH > rowMaxRenderHPx) rowMaxRenderHPx = cellMaxH;
+            cellVerticalMarginPxMap.put(rowKey, verticalMarginPx);
+
+            // 本 cell 占用行高 = 该 cell 最高图 + 该 cell 的 verticalMargin × 2
+            float cellRowHeightPx = cellMaxH + 2f * verticalMarginPx;
+            if (cellRowHeightPx > rowMaxRenderHPx) rowMaxRenderHPx = cellRowHeightPx;
         }
 
         // =====================================================================
-        // 步骤 2：写行高（关键：用真行高画图才能 dy1 居中）
+        // 步骤 2：写行高
         // =====================================================================
-        // 这里必须先 setHeight 再画图：
-        //   - dy1 是绝对像素值（verticalMarginPx + 居中偏移）
-        //   - 居中偏移 = (行高 - 图组高) / 2
-        //   - 行高未确定前算 dy1 会错位
-        //   - 所以本方法先一次性算好所有 cell 的渲染宽高 → 算整行 maxH → setHeight → 再画图
+        // 注意：rowMaxRenderHPx 在步骤 1 已经包含了 max(cellMaxH + 2 * cellVerticalMarginPx)，
+        //       所以这里不再额外加 verticalMargin（否则会双重计算，且会用错的默认值）。
         int rowHeightTwips = MIN_ROW_HEIGHT_TWIPS;
         if (rowMaxRenderHPx > 0f) {
-            float verticalMarginPx = IMAGE_VERTICAL_MARGIN_CHARS * Units.DEFAULT_CHARACTER_WIDTH;
-            int newRowHeightTwips = Math.round((rowMaxRenderHPx + 2f * verticalMarginPx) * TWIPS_PER_PX);
+            int newRowHeightTwips = Math.round(rowMaxRenderHPx * TWIPS_PER_PX);
             // 兜底：避免 0 行高导致的 Excel 警告
             if (newRowHeightTwips < MIN_ROW_HEIGHT_TWIPS) newRowHeightTwips = MIN_ROW_HEIGHT_TWIPS;
             rowHeightTwips = newRowHeightTwips;
             row.setHeight((short) newRowHeightTwips);
         }
-
         // =====================================================================
         // 步骤 3：遍历本行所有 cell 画图（用真行高 + 真列宽）
         // =====================================================================
@@ -821,6 +980,20 @@ public class ImagesSheetWriteHandler implements CellWriteHandler, RowWriteHandle
                 log.error("[ImagesSheetWriteHandler] afterRowDispose 画图失败 [{}]: {}",
                         rowKey, e.getMessage(), e);
             }
+        }
+
+        // =====================================================================
+        // 步骤 3.5：最后强制再设置一次行高
+        // =====================================================================
+        // 行高计算好后，先设 setHeight() → 画图 → 然后立即再设一次。
+        // 原因：本行 afterRowDispose 之后，Excel 可能因为本行其他 cell 的文本 wrap
+        //       再次调高行高；而 DONT_MOVE_AND_RESIZE 锚点不会跟随行高变化，
+        //       因此 rowHeightTwips 需要提前确定且不再被修改。
+        //       这里"再设一次"是兜底：如果该行实际设过的行高大于 rowHeightTwips，仍保留较大值（避免裁掉其他内容）
+        if (rowMaxRenderHPx > 0f) {
+            // 只在该行确实有图片 cell 时才"覆盖"行高；否则保留文字自适应的行高
+            // 这里只设 rowMaxRenderHPx 算出来的 twips，不去主动改更大
+            row.setHeight((short) rowHeightTwips);
         }
 
         // =====================================================================
@@ -944,9 +1117,11 @@ public class ImagesSheetWriteHandler implements CellWriteHandler, RowWriteHandle
                 : (DEFAULT_ROW_HEIGHT_POINTS * PX_PER_POINT);
 
         // 三个布局参数（以字符宽度为单位转 px）
-        float horizontalMarginPx = IMAGE_HORIZONTAL_MARGIN_CHARS * Units.DEFAULT_CHARACTER_WIDTH;
-        float verticalMarginPx = IMAGE_VERTICAL_MARGIN_CHARS * Units.DEFAULT_CHARACTER_WIDTH;
-        float gapPx = IMAGE_GAP_CHARS * Units.DEFAULT_CHARACTER_WIDTH;
+        // 画图时也读注解（之前一直走默认 1 char margin / 1 char gap）
+        ExcelImageProperty ann = resolveColumnAnnotation(columnIndex);
+        float horizontalMarginPx = readHorizontalMarginChars(ann) * Units.DEFAULT_CHARACTER_WIDTH;
+        float verticalMarginPx = readVerticalMarginChars(ann) * Units.DEFAULT_CHARACTER_WIDTH;
+        float gapPx = readImageGapChars(ann) * Units.DEFAULT_CHARACTER_WIDTH;
 
         // 内容可用区：扣除左右/上下 margin
         float usableWPx = colWidthPx - 2f * horizontalMarginPx;
@@ -1038,8 +1213,10 @@ public class ImagesSheetWriteHandler implements CellWriteHandler, RowWriteHandle
                     anchor.setDx2((int) Math.round((fromDx1Px + renderW) * emuPerPixel));
                 }
                 anchor.setDy2((int) Math.round(toDy2Px * emuPerPixel));
-                // 锚点类型：MOVE_AND_RESIZE → 行高列宽变化时图片跟着变
-                anchor.setAnchorType(ClientAnchor.AnchorType.MOVE_AND_RESIZE);
+                // 锚点类型：DONT_MOVE_AND_RESIZE
+                //   - 行高/列宽变化时图片不跟随变（保持像素精准定位）
+                //   - 不被其他列的文本 wrap 撑高行高所拉伸
+                anchor.setAnchorType(ClientAnchor.AnchorType.DONT_MOVE_AND_RESIZE);
 
                 // 用 pictureIdx 创建 Picture（POI 内部从 workbook.pictures 取图）
                 drawing.createPicture(anchor, pictureIdx);

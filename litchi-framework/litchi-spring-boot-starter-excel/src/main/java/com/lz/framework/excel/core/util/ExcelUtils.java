@@ -8,8 +8,8 @@ import com.lz.framework.dict.core.DictFrameworkUtils;
 import com.lz.framework.excel.core.annotations.ExcelDirection;
 import com.lz.framework.excel.core.convert.DictConvert;
 import com.lz.framework.excel.core.convert.ImagesConvert;
-import com.lz.framework.excel.core.handler.ImagesSheetWriteHandler;
 import com.lz.framework.excel.core.handler.I18nHeadWriteHandler;
+import com.lz.framework.excel.core.handler.ImagesSheetWriteHandler;
 import com.lz.framework.excel.core.handler.SelectSheetWriteHandler;
 import com.lz.framework.excel.core.strategy.PoiTempFileStrategy;
 import jakarta.servlet.http.HttpServletResponse;
@@ -62,6 +62,11 @@ public class ExcelUtils {
         // 分配本次导出的 POI 临时子目录（UUID 隔离，多线程安全）
         String tempDir = PoiTempFileStrategy.acquireTempDir();
         try {
+            // 【图片场景必须 inMemory(true)】
+            //   - SXSSF (inMemory=false) 是 streaming 模式，会把 row 写入临时文件后释放内存。
+            //   - 这导致图片的 addPicture() 在 row 已被 flush 后变成孤立 Picture，
+            //     然后某些情况下 Excel 会把同一张图写入每个 row 一份 → 图片数量翻倍！
+            //   - 改成 inMemory(true) → 用 XSSF（内存常驻）→ Picture 正确关联到对应 row。
             var builder = EasyExcel.write(response.getOutputStream(), head)
                     .autoCloseStream(true)
                     .inMemory(false)
