@@ -68,4 +68,12 @@ public interface ConfigService {
      */
     PageResult<ConfigDO> getConfigPage(ConfigPageReqVO reqVO);
 
+    /**
+     * 根据参数键，获得参数配置的值
+     *
+     * @param key  配置键
+     * @param type 配置值类型
+     * @return 参数配置的值
+     */
+    <T> T getConfigValueByKey(String key, Class<T> type);
 }

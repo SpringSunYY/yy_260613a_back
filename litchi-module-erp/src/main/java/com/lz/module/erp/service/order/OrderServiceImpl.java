@@ -8,11 +8,14 @@ import com.anji.captcha.util.StringUtils;
 import com.baomidou.dynamic.datasource.annotation.DSTransactional;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.lz.framework.common.biz.infra.file.FileCommonApi;
+import com.lz.framework.common.biz.infra.file.dto.FileSimpVo;
 import com.lz.framework.common.biz.system.dict.DictDataCommonApi;
 import com.lz.framework.common.biz.system.dict.dto.DictDataRespDTO;
 import com.lz.framework.common.pojo.PageResult;
 import com.lz.framework.common.util.object.BeanUtils;
 import com.lz.framework.common.util.object.ObjectUtils;
+import com.lz.framework.security.core.service.SecurityFrameworkService;
 import com.lz.module.erp.controller.admin.order.vo.*;
 import com.lz.module.erp.controller.admin.orderProcess.vo.OrderProcessRespVO;
 import com.lz.module.erp.controller.admin.orderProcess.vo.OrderProcessSaveReqVO;
@@ -26,13 +29,10 @@ import com.lz.module.erp.dal.mysql.order.OrderMapper;
 import com.lz.module.erp.dal.mysql.orderAudit.OrderAuditMapper;
 import com.lz.module.erp.dal.mysql.orderProcess.OrderProcessMapper;
 import com.lz.module.erp.dal.mysql.orderProcessHistory.OrderProcessHistoryMapper;
-import com.lz.module.erp.enums.ErpDictTypeConstants;
-import com.lz.module.erp.enums.ErpOrderAuditStatusEnum;
-import com.lz.module.erp.enums.ErpOrderCurrentProcessEnum;
-import com.lz.module.erp.enums.ErpOrderPrintStatusEnum;
+import com.lz.module.erp.enums.*;
 import com.lz.module.erp.service.orderProcess.OrderProcessService;
 import com.lz.module.erp.service.orderVector.OrderVectorService;
-import com.lz.framework.common.biz.infra.file.dto.FileSimpVo;
+import com.lz.module.infra.api.config.ConfigApi;
 import com.lz.module.system.api.user.AdminUserApi;
 import com.lz.module.system.api.user.dto.AdminUserSimpRespDTO;
 import jakarta.annotation.Resource;
@@ -84,7 +84,7 @@ public class OrderServiceImpl implements OrderService {
     private DictDataCommonApi dictDataCommonApi;
 
     @Resource
-    private com.lz.framework.common.biz.infra.file.FileCommonApi fileCommonApi;
+    private FileCommonApi fileCommonApi;
 
     @Resource
     private OrderProcessHistoryMapper orderProcessHistoryMapper;
@@ -94,6 +94,12 @@ public class OrderServiceImpl implements OrderService {
 
     @Resource
     private TransactionTemplate transactionTemplate;
+
+    @Resource
+    private SecurityFrameworkService securityFrameworkService;
+
+    @Resource
+    private ConfigApi configApi;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -479,6 +485,47 @@ public class OrderServiceImpl implements OrderService {
         updateWrapper.eq(OrderDO::getId, auditReqVO.getId());
         updateWrapper.set(OrderDO::getAuditStatus, ErpOrderAuditStatusEnum.ORDER_AUDIT_STATUS_2.getStatus());
         orderMapper.update(updateWrapper);
+    }
+
+    @Override
+    public List<OrderExcelVO> getExportOrderList(OrderPageReqVO pageReqVO) {
+        PageResult<OrderDO> orderPage = this.getOrderPage(pageReqVO);
+        return getOrderExcelVOS(orderPage);
+    }
+
+    @Override
+    public List<OrderExcelVO> getExportShipOrderList(OrderPageReqVO pageReqVO) {
+        PageResult<OrderDO> shipOrderPage = this.getShipOrderPage(pageReqVO);
+        return getOrderExcelVOS(shipOrderPage);
+    }
+
+    private List<OrderExcelVO> getOrderExcelVOS(PageResult<OrderDO> shipOrderPage) {
+        Long total = shipOrderPage.getTotal();
+        if (total == 0) return List.of();
+        //校验导出数据大小限制
+        Integer excelLimit = configApi.getConfigValueByKey(ErpConfigConstants.ERP_EXCEL_SIZE_LIMIT, Integer.class);
+        if (total > excelLimit) throw exception(ORDER_EXPORT_DATA_SIZE_EXCEED_LIMIT, excelLimit, total);
+        //将orderDO转换为orderExcelVO
+        List<OrderExcelVO> list = new ArrayList<>();
+        //判断权限
+        boolean hasLoan = securityFrameworkService.hasPermission(PerConstants.ERP_ORDER_FILED_LOAN);
+        boolean hasPostage = securityFrameworkService.hasPermission(PerConstants.ERP_ORDER_FILED_POSTAGE);
+        for (OrderDO orderDO : shipOrderPage.getList()) {
+            OrderExcelVO orderExcelVO = new OrderExcelVO();
+            //根据权限设置为空
+            if (!hasLoan) {
+                orderDO.setLoanStatus(null);
+                orderDO.setLoan(null);
+            }
+            if (!hasPostage) {
+                orderDO.setPostage(null);
+                orderDO.setPostageStatus(null);
+            }
+            BeanUtils.copyProperties(orderDO, orderExcelVO);
+            list.add(orderExcelVO);
+        }
+        // 把 tempFiles 注册到 JVM 关闭钩子（兜底：防止 Service 调用方忘了清理）
+        return list;
     }
 
 

@@ -38,4 +38,14 @@ public class PerConstants {
      * 完成
      */
     public static final String ERP_ORDER_PROCESS_COMPLETE = "erp:order-process:complete";
+
+    /**
+     * 查看贷款信息
+     */
+    public static final String ERP_ORDER_FILED_LOAN = "erp:order:filed:loan";
+
+    /**
+     * 查看邮费信息
+     */
+    public static final String ERP_ORDER_FILED_POSTAGE = "erp:order:filed:postage";
 }

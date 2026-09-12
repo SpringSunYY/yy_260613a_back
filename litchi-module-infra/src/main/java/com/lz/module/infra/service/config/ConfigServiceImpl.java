@@ -1,13 +1,15 @@
 package com.lz.module.infra.service.config;
 
+import cn.hutool.core.convert.Convert;
+import com.google.common.annotations.VisibleForTesting;
 import com.lz.framework.common.pojo.PageResult;
+import com.lz.framework.common.util.object.ObjectUtils;
 import com.lz.module.infra.controller.admin.config.vo.ConfigPageReqVO;
 import com.lz.module.infra.controller.admin.config.vo.ConfigSaveReqVO;
 import com.lz.module.infra.convert.config.ConfigConvert;
 import com.lz.module.infra.dal.dataobject.config.ConfigDO;
 import com.lz.module.infra.dal.mysql.config.ConfigMapper;
 import com.lz.module.infra.enums.config.ConfigTypeEnum;
-import com.google.common.annotations.VisibleForTesting;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -92,6 +94,19 @@ public class ConfigServiceImpl implements ConfigService {
     @Override
     public PageResult<ConfigDO> getConfigPage(ConfigPageReqVO pageReqVO) {
         return configMapper.selectPage(pageReqVO);
+    }
+
+    @Override
+    public <T> T getConfigValueByKey(String key, Class<T> type) {
+        ConfigDO configDO = configMapper.selectByKey(key);
+        if (ObjectUtils.isNull(configDO)) {
+            throw exception(CONFIG_NOT_EXISTS, key);
+        }
+        try {
+            return Convert.convert(type, configDO.getValue());
+        } catch (Exception e) {
+            throw exception(CONFIG_VALUE_CONVERT_ERROR, key, type.getSimpleName());
+        }
     }
 
     @VisibleForTesting

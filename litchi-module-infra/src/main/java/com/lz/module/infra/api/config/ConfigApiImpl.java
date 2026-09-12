@@ -24,4 +24,9 @@ public class ConfigApiImpl implements ConfigApi {
         return config != null ? config.getValue() : null;
     }
 
+    @Override
+    public <T> T getConfigValueByKey(String key, Class<T> type) {
+        return configService.getConfigValueByKey(key,type);
+    }
+
 }

@@ -1,6 +1,7 @@
 package com.lz.module.erp.service.order;
 
 import com.lz.framework.common.pojo.PageResult;
+import com.lz.framework.common.util.collection.MapUtils;
 import com.lz.module.erp.controller.admin.order.vo.*;
 import com.lz.module.erp.controller.admin.orderProcess.vo.OrderProcessSaveReqVO;
 import com.lz.module.erp.dal.dataobject.order.OrderDO;
@@ -149,6 +150,21 @@ public interface OrderService {
      */
     void submitAuditOrder(@Valid OrderAuditReqVO auditReqVO);
 
+    /**
+     * 获得订单信息 Excel 导出列表
+     *
+     * @param pageReqVO 查询
+     * @return 订单信息 Excel 导出列表
+     */
+    List<OrderExcelVO> getExportOrderList(OrderPageReqVO pageReqVO);
+
+    /**
+     * 获得待发货订单信息 Excel 导出列表
+     *
+     * @param pageReqVO 查询
+     * @return 订单信息 Excel 导出列表
+     */
+    List<OrderExcelVO> getExportShipOrderList(OrderPageReqVO pageReqVO);
 
     // ==================== 子表（订单明细） ====================
 

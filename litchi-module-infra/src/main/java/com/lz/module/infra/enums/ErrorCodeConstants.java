@@ -12,10 +12,11 @@ import com.lz.framework.common.exception.ErrorCode;
 public interface ErrorCodeConstants {
 
     // ========== 参数配置 1-001-000-000 ==========
-    ErrorCode CONFIG_NOT_EXISTS = new ErrorCode(1_001_000_001, "infra.config.back.notExists", "参数配置不存在");
+    ErrorCode CONFIG_NOT_EXISTS = new ErrorCode(1_001_000_001, "infra.config.back.notExists", "参数配置不存在 {}");
     ErrorCode CONFIG_KEY_DUPLICATE = new ErrorCode(1_001_000_002, "infra.config.back.keyDuplicate", "参数配置 key 重复");
     ErrorCode CONFIG_CAN_NOT_DELETE_SYSTEM_TYPE = new ErrorCode(1_001_000_003, "infra.config.back.systemType.prohibitDelete", "不能删除类型为系统内置的参数配置");
     ErrorCode CONFIG_GET_VALUE_ERROR_IF_VISIBLE = new ErrorCode(1_001_000_004, "infra.config.back.value.invalid", "获取参数配置失败，原因：不允许获取不可见配置");
+    ErrorCode CONFIG_VALUE_CONVERT_ERROR = new ErrorCode(1_001_000_005, "infra.config.back.convert.error", "参数配置 {} 转换失败，期望类型为 {}");
 
     // ========== 定时任务 1-001-001-000 ==========
     ErrorCode JOB_NOT_EXISTS = new ErrorCode(1_001_001_000, "infra.job.back.notExists", "定时任务不存在");

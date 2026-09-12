@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
 
 import static com.lz.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static com.lz.module.erp.enums.ErrorCodeConstants.*;
-import static com.lz.module.infra.constants.FileConstants.FILE_PATH_SEPARATOR;
+import static com.lz.framework.common.enums.FileConstants.FILE_PATH_SEPARATOR;
 
 /**
  * 订单向量 Service 实现类

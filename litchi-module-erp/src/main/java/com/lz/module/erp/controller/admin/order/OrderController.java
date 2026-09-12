@@ -7,7 +7,6 @@ import com.lz.framework.common.pojo.PageParam;
 import com.lz.framework.common.pojo.PageResult;
 import com.lz.framework.common.util.object.BeanUtils;
 import com.lz.framework.excel.core.util.ExcelUtils;
-import com.lz.framework.security.core.util.SecurityFrameworkUtils;
 import com.lz.module.erp.controller.admin.order.vo.*;
 import com.lz.module.erp.dal.dataobject.order.OrderDO;
 import com.lz.module.erp.service.order.OrderService;
@@ -83,12 +82,13 @@ public class OrderController {
     @Operation(summary = "打印订单信息")
     @PreAuthorize("@ss.hasPermission('erp:order:update')")
     public CommonResult<Boolean> printOrder(@RequestBody OrderSaveReqVO reqVO) {
-        if (StrUtil.isEmpty(reqVO.getOrderNo())){
+        if (StrUtil.isEmpty(reqVO.getOrderNo())) {
             return success(false);
         }
         orderService.printOrder(reqVO.getOrderNo());
         return success(true);
     }
+
     /**
      * 提交审核订单信息
      */
@@ -193,10 +193,24 @@ public class OrderController {
     public void exportOrderExcel(@Valid OrderPageReqVO pageReqVO,
                                  HttpServletResponse response) throws IOException {
         pageReqVO.setPageSize(PageParam.PAGE_SIZE_NONE);
-        List<OrderDO> list = orderService.getOrderPage(pageReqVO).getList();
         // 导出 Excel
         ExcelUtils.write(response, "订单信息.xls", "数据", OrderExcelVO.class,
-                BeanUtils.toBean(list, OrderExcelVO.class));
+                orderService.getExportOrderList(pageReqVO));
+    }
+
+    /**
+     * 导出订单信息 Excel
+     */
+    @GetMapping("/ship/export-excel")
+    @Operation(summary = "导出订单信息 Excel")
+    @PreAuthorize("@ss.hasPermission('erp:order:export')")
+    @ApiAccessLog(operateType = EXPORT)
+    public void exportShipOrderExcel(@Valid OrderPageReqVO pageReqVO,
+                                 HttpServletResponse response) throws IOException {
+        pageReqVO.setPageSize(PageParam.PAGE_SIZE_NONE);
+        // 导出 Excel
+        ExcelUtils.write(response, "订单信息.xls", "数据", OrderExcelVO.class,
+                orderService.getExportShipOrderList(pageReqVO));
     }
 
 
@@ -219,27 +233,27 @@ public class OrderController {
     @Operation(summary = "订单信息统计")
     @PreAuthorize("@ss.hasPermission('erp:order:query')")
     public CommonResult<List<OrderStatisticsRespVO>> getOrderStatistics(@Valid OrderPageReqVO pageReqVO) {
-       return success(orderService.getOrderStatistics(pageReqVO));
+        return success(orderService.getOrderStatistics(pageReqVO));
     }
 
     @GetMapping("/statistics/ship")
     @Operation(summary = "订单信息统计-发货")
     @PreAuthorize("@ss.hasPermission('erp:order:query')")
     public CommonResult<List<OrderStatisticsRespVO>> getShipOrderStatistics(@Valid OrderPageReqVO pageReqVO) {
-       return success(orderService.getOrderShipStatistics(pageReqVO));
+        return success(orderService.getOrderShipStatistics(pageReqVO));
     }
 
     @GetMapping("/statistics/loan")
     @Operation(summary = "订单信息统计-贷款")
     @PreAuthorize("@ss.hasPermission('erp:order:filed:loan')")
     public CommonResult<List<OrderStatisticsRespVO>> getOrderLoanStatistics(@Valid OrderPageReqVO pageReqVO) {
-       return success(orderService.getOrderLoanStatistics(pageReqVO));
+        return success(orderService.getOrderLoanStatistics(pageReqVO));
     }
 
     @GetMapping("/statistics/postage")
     @Operation(summary = "订单信息统计-邮费")
     @PreAuthorize("@ss.hasPermission('erp:order:filed:postage')")
     public CommonResult<List<OrderStatisticsRespVO>> getOrderPostageStatistics(@Valid OrderPageReqVO pageReqVO) {
-       return success(orderService.getOrderPostageStatistics(pageReqVO));
+        return success(orderService.getOrderPostageStatistics(pageReqVO));
     }
 }

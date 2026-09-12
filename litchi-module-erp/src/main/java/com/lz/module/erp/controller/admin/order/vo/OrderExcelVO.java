@@ -6,6 +6,7 @@ import com.lz.framework.common.validation.i18n.I18nNotEmpty;
 import com.lz.framework.common.validation.i18n.I18nNotNull;
 import com.lz.framework.excel.core.annotations.ExcelColumnSelect;
 import com.lz.framework.excel.core.annotations.ExcelI18n;
+import com.lz.framework.excel.core.annotations.ExcelImageProperty;
 import com.lz.framework.excel.core.convert.DictConvert;
 import com.lz.framework.excel.core.convert.ImagesConvert;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -132,8 +133,13 @@ public class OrderExcelVO {
      * 打印图片
      */
     @ExcelProperty(value = "打印图片", converter = ImagesConvert.class)
-    @ColumnWidth(10)
+    @ColumnWidth(20)
     @ExcelI18n(i18nKey = "erp.order.field.printImage")
+    @ExcelImageProperty(
+            maxFileSizeMB = 10,           // 单 cell 上限 5MB（替代全局默认 10MB）
+            horizontalMarginChars = 2.0f,  // 水平边距 2 字符
+            verticalMarginChars = 2.0f
+    )
     private String printImage;
 
     /**
@@ -146,18 +152,29 @@ public class OrderExcelVO {
     /**
      * 图片
      */
-    @ExcelProperty(value = "图片", converter = ImagesConvert.class)
-    @ColumnWidth(30)
-    @ExcelI18n(i18nKey = "erp.order.field.orderImage")
-    private String orderImage;
+//    @ExcelProperty(value = "图片", converter = ImagesConvert.class)
+//    @ColumnWidth(60)
+//    @ExcelImageProperty(
+//            maxFileSizeMB = 10,           // 单 cell 上限 5MB（替代全局默认 10MB）
+//            horizontalMarginChars = 5.0f, // 水平边距 2 字符
+//            verticalMarginChars = 5.0f,
+//            imageGapChars=3,
+//            maxRenderHeightMultiple=2
+//    )
+//    @ExcelI18n(i18nKey = "erp.order.field.orderImage")
+//    private String orderImage;
 
     /**
      * 二维码
      */
-    @ExcelProperty(value = "二维码", converter = ImagesConvert.class)
-    @ColumnWidth(20)
-    @ExcelI18n(i18nKey = "erp.order.field.qrCode")
-    private String qrCode;
+//    @ExcelProperty(value = "二维码", converter = ImagesConvert.class)
+//    @ColumnWidth(20)
+//    @ExcelImageProperty(
+//            maxFileSizeMB = 5,           // 单 cell 上限 5MB（替代全局默认 10MB）
+//            horizontalMarginChars = 3.0f  // 水平边距 2 字符
+//    )
+//    @ExcelI18n(i18nKey = "erp.order.field.qrCode")
+//    private String qrCode;
 
     /**
      * 规格

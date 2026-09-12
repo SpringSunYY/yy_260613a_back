@@ -15,4 +15,8 @@ public interface ConfigApi {
      */
     String getConfigValueByKey(String key);
 
+    /**
+     * 根据传递过来的参数转换为对应的数据类型
+     */
+    <T> T getConfigValueByKey(String key, Class<T> type);
 }
